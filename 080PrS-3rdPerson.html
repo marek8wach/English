@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>010PrS-Basic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --board-bg:#6b3a28;
+    --board-bg-2:#8a4f34;
+    --board-frame:#4a3324;
+    --board-frame-dark:#2e2016;
+    --chalk:#f5ead9;
+    --card-bg:#fdfaf3;
+    --card-line:#e6dcc8;
+    --ink:#2b2b26;
+    --ink-soft:#78766a;
+    --red-pen:#d1483a;
+    --red-pen-dark:#a3392b;
+    --pen-green:#4f8f5e;
+    --answer-blue:#1d4ed8;
+    --font-display:'Kalam',cursive;
+    --font-body:'Inter',system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+
+  body{
+    min-height:100vh;
+    background:linear-gradient(160deg,#2a2019,#1c1610);
+    font-family:var(--font-body);
+    display:flex;
+    justify-content:center;
+    padding:36px 16px;
+  }
+
+  .board{
+    position:relative;
+    width:100%;
+    max-width:840px;
+    background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));
+    border:14px solid var(--board-frame);
+    border-radius:10px;
+    box-shadow:0 0 0 4px var(--board-frame-dark),0 24px 60px rgba(0,0,0,.45);
+    padding:clamp(22px,5vw,52px);
+    overflow:hidden;
+  }
+
+  .board::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      radial-gradient(rgba(245,234,217,.06) 1px, transparent 1px),
+      radial-gradient(rgba(245,234,217,.05) 1px, transparent 1px);
+    background-size:26px 26px, 38px 38px;
+    background-position:0 0, 12px 18px;
+    pointer-events:none;
+  }
+
+  header{position:relative;text-align:center;margin-bottom:20px;}
+
+  .title{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:clamp(2.1rem,5vw,3rem);
+    color:var(--chalk);
+    letter-spacing:.5px;
+    margin:0;
+  }
+
+  .subtitle{
+    color:var(--chalk);
+    opacity:.8;
+    font-size:.9rem;
+    margin:8px 0 0;
+  }
+
+  .sheet{
+    background:var(--card-bg);
+    border-radius:8px;
+    padding:4px 20px;
+    box-shadow:0 14px 30px rgba(0,0,0,.28), 0 2px 0 rgba(0,0,0,.05);
+    margin-bottom:24px;
+  }
+
+  .items{
+    list-style:none;
+    margin:0;
+    padding:0;
+  }
+
+  .row{
+    padding:0 2px;
+    border-bottom:1px dashed var(--card-line);
+  }
+  .row:last-child{border-bottom:none;}
+
+  .sentence{
+    color:var(--ink);
+    font-size:1.02rem;
+    line-height:1.6;
+    margin:0;
+  }
+  .sentence .bracket{color:var(--pen-green);font-style:italic;font-size:.92em;margin-left:2px;}
+
+  .item-number{
+    font-family:var(--font-mono);
+    font-weight:700;
+    color:var(--red-pen);
+    display:inline-block;
+    min-width:20px;
+    margin-right:4px;
+  }
+
+  .answer-input{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:1rem;
+    border:none;
+    border-bottom:2px dashed var(--card-line);
+    background:transparent;
+    padding:2px 3px;
+    width:92px;
+    color:var(--red-pen-dark);
+  }
+  .answer-input:focus{outline:none;border-bottom-color:var(--red-pen);}
+  .answer-input:focus-visible{outline:2px solid var(--red-pen);outline-offset:2px;border-radius:2px;}
+  .row.correct .answer-input{color:var(--pen-green);border-bottom-color:var(--pen-green);}
+
+  .reveal-row{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:8px;
+    padding-bottom:8px;
+  }
+
+  .reveal-btn{
+    font-family:var(--font-mono);
+    font-size:.7rem;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    border:1.5px solid var(--card-line);
+    background:transparent;
+    color:var(--ink-soft);
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    transition:border-color .2s ease, color .2s ease, background .2s ease, transform .2s ease;
+  }
+  .reveal-btn svg{width:10px;height:10px;flex-shrink:0;}
+
+  .reveal-audio:hover{border-color:var(--red-pen);color:var(--red-pen-dark);}
+  .reveal-audio.playing{border-color:var(--red-pen);color:var(--red-pen-dark);background:rgba(209,72,58,.08);animation:pulse 1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+
+  .reveal-text:hover{border-color:var(--answer-blue);color:var(--answer-blue);}
+  .reveal-text.active{border-color:var(--answer-blue);color:var(--answer-blue);background:rgba(29,78,216,.08);}
+
+  .answer-reveal{
+    font-size:.85rem;
+    font-weight:600;
+  }
+  .answer-reveal[hidden]{display:none;}
+  .answer-reveal .ar-blue{color:var(--answer-blue);}
+  .answer-reveal .ar-green{color:var(--pen-green);}
+  .answer-reveal .ar-red{color:var(--red-pen-dark);}
+  .answer-reveal .ar-underline{text-decoration:underline;text-decoration-color:currentColor;text-underline-offset:2px;}
+
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    justify-content:center;
+    margin-bottom:6px;
+  }
+
+  button.btn{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:.92rem;
+    padding:11px 20px;
+    border-radius:24px;
+    cursor:pointer;
+    border:1.5px solid transparent;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  button.btn:hover{transform:translateY(-1px);}
+  button.btn:active{transform:translateY(0);}
+
+  .btn-primary{background:#e8c547;color:#2b2210;}
+  .btn-ghost{background:transparent;border-color:var(--chalk);color:var(--chalk);}
+
+  .score{
+    text-align:center;
+    font-family:var(--font-mono);
+    color:var(--chalk);
+    min-height:1.1em;
+    font-size:.9rem;
+    margin:0;
+  }
+
+  footer{text-align:center;color:var(--chalk);opacity:.55;font-size:.75rem;margin-top:6px;font-family:var(--font-mono);}
+
+  @media (max-width:480px){
+    body{padding:20px 10px;}
+    .board{border-width:9px;padding:18px 14px;}
+    .title{font-size:1.7rem;}
+    .sheet{padding:2px 14px;}
+    .sentence{font-size:.94rem;}
+    .controls{flex-direction:column;}
+    button.btn{width:100%;}
+    .answer-input{width:76px;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .reveal-btn,button.btn{transition:none;}
+    .reveal-audio.playing{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="board">
+  <header>
+    <h1 class="title">Present Simple Practice</h1>
+    <p class="subtitle">Fill in the blanks with the correct present simple form of the verb in brackets.</p>
+  </header>
+
+  <main>
+    <div class="sheet">
+      <ol class="items" id="items"></ol>
+    </div>
+
+    <div class="controls">
+      <button type="button" class="btn btn-primary" id="checkBtn">Check my answers</button>
+      <button type="button" class="btn btn-ghost" id="clearBtn">Clear</button>
+    </div>
+    <p class="score" id="score"></p>
+  </main>
+
+  <footer>Present simple · 3rd person singular · A1 · regular -s, no spelling change</footer>
+</div>
+
+<script>
+(function(){
+  const itemsData = [
+    { before:"He ", bracket:"(work)", after:" in a shop.", answer:"works", accepted:["works"],
+      parts:[{t:"work",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"She ", bracket:"(eat)", after:" breakfast at seven.", answer:"eats", accepted:["eats"],
+      parts:[{t:"eat",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"My brother ", bracket:"(play)", after:" football on Sundays.", answer:"plays", accepted:["plays"],
+      parts:[{t:"play",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"She ", bracket:"(live)", after:" in a small flat.", answer:"lives", accepted:["lives"],
+      parts:[{t:"live",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"He ", bracket:"(read)", after:" a book every night.", answer:"reads", accepted:["reads"],
+      parts:[{t:"read",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"My sister ", bracket:"(drink)", after:" tea every morning.", answer:"drinks", accepted:["drinks"],
+      parts:[{t:"drink",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"The baby ", bracket:"(sleep)", after:" all afternoon.", answer:"sleeps", accepted:["sleeps"],
+      parts:[{t:"sleep",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"She ", bracket:"(open)", after:" the window every day.", answer:"opens", accepted:["opens"],
+      parts:[{t:"open",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"He ", bracket:"(like)", after:" pizza very much.", answer:"likes", accepted:["likes"],
+      parts:[{t:"like",k:"base"},{t:"s",k:"suffix"}] },
+    { before:"My mother ", bracket:"(clean)", after:" the house on Saturdays.", answer:"cleans", accepted:["cleans"],
+      parts:[{t:"clean",k:"base"},{t:"s",k:"suffix"}] }
+  ];
+
+  const speakerSVG = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 9 3 15 8 15 13 20 13 4 8 9 3 9" fill="currentColor" stroke="none"></polygon><path d="M16 8a5 5 0 0 1 0 8"></path><path d="M19 5a9 9 0 0 1 0 14"></path></svg>';
+
+  function fullSentence(item){
+    return item.before + item.answer + item.after;
+  }
+
+  const partClass = {
+    base: 'ar-green',
+    change: 'ar-green ar-underline',
+    suffix: 'ar-red',
+    irregular: 'ar-red'
+  };
+
+  function buildAnswerReveal(container, item){
+    container.innerHTML = '';
+    const beforeSpan = document.createElement('span');
+    beforeSpan.className = 'ar-blue';
+    beforeSpan.textContent = item.before;
+    container.appendChild(beforeSpan);
+
+    item.parts.forEach(function(seg){
+      const s = document.createElement('span');
+      s.className = partClass[seg.k] || 'ar-green';
+      s.textContent = seg.t;
+      container.appendChild(s);
+    });
+
+    const afterSpan = document.createElement('span');
+    afterSpan.className = 'ar-blue';
+    afterSpan.textContent = item.after;
+    container.appendChild(afterSpan);
+  }
+
+  function speak(text, btn){
+    if(!('speechSynthesis' in window)){
+      alert('Sorry, your browser does not support audio playback.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.92;
+    utter.pitch = 1;
+    document.querySelectorAll('.reveal-audio.playing').forEach(function(b){ b.classList.remove('playing'); });
+    if(btn){
+      utter.onstart = function(){ btn.classList.add('playing'); };
+      utter.onend = function(){ btn.classList.remove('playing'); };
+      utter.onerror = function(){ btn.classList.remove('playing'); };
+    }
+    window.speechSynthesis.speak(utter);
+  }
+
+  function normalize(str){
+    return str.toLowerCase().trim().replace(/’/g, "'").replace(/\s+/g, ' ');
+  }
+
+  const itemsEl = document.getElementById('items');
+  itemsData.forEach(function(item, i){
+    const li = document.createElement('li');
+    li.className = 'row';
+
+    const p = document.createElement('p');
+    p.className = 'sentence';
+
+    const numSpan = document.createElement('span');
+    numSpan.className = 'item-number';
+    numSpan.textContent = (i + 1) + '.';
+    p.appendChild(numSpan);
+
+    p.appendChild(document.createTextNode(item.before));
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'answer-input';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.setAttribute('aria-label', 'Answer for sentence ' + (i + 1));
+    input.dataset.index = i;
+    p.appendChild(input);
+
+    p.appendChild(document.createTextNode(' '));
+
+    const bracketSpan = document.createElement('span');
+    bracketSpan.className = 'bracket';
+    bracketSpan.textContent = item.bracket;
+    p.appendChild(bracketSpan);
+
+    p.appendChild(document.createTextNode(item.after));
+
+    const revealRow = document.createElement('div');
+    revealRow.className = 'reveal-row';
+
+    const audioBtn = document.createElement('button');
+    audioBtn.type = 'button';
+    audioBtn.className = 'reveal-btn reveal-audio';
+    audioBtn.setAttribute('aria-label', 'Play the answer for sentence ' + (i + 1));
+    audioBtn.innerHTML = speakerSVG + '<span>Answer</span>';
+    audioBtn.addEventListener('click', function(){ speak(fullSentence(item), audioBtn); });
+
+    const textBtn = document.createElement('button');
+    textBtn.type = 'button';
+    textBtn.className = 'reveal-btn reveal-text';
+    textBtn.setAttribute('aria-label', 'Show the written answer for sentence ' + (i + 1));
+    textBtn.textContent = 'Text';
+
+    const answerReveal = document.createElement('span');
+    answerReveal.className = 'answer-reveal';
+    answerReveal.setAttribute('hidden', '');
+    answerReveal.setAttribute('aria-live', 'polite');
+    buildAnswerReveal(answerReveal, item);
+
+    textBtn.addEventListener('click', function(){
+      const isHidden = answerReveal.hasAttribute('hidden');
+      if(isHidden){
+        answerReveal.removeAttribute('hidden');
+        textBtn.textContent = 'Hide';
+        textBtn.classList.add('active');
+      } else {
+        answerReveal.setAttribute('hidden', '');
+        textBtn.textContent = 'Text';
+        textBtn.classList.remove('active');
+      }
+    });
+
+    revealRow.appendChild(audioBtn);
+    revealRow.appendChild(textBtn);
+    revealRow.appendChild(answerReveal);
+
+    li.appendChild(p);
+    li.appendChild(revealRow);
+    itemsEl.appendChild(li);
+  });
+
+  document.getElementById('checkBtn').addEventListener('click', function(){
+    let correctCount = 0;
+    document.querySelectorAll('.answer-input').forEach(function(input){
+      const idx = Number(input.dataset.index);
+      const item = itemsData[idx];
+      const row = input.closest('.row');
+      const val = normalize(input.value);
+      const isCorrect = item.accepted.some(function(a){ return normalize(a) === val; });
+      row.classList.remove('correct', 'incorrect');
+      if(val){
+        row.classList.add(isCorrect ? 'correct' : 'incorrect');
+        if(isCorrect) correctCount++;
+      }
+    });
+    document.getElementById('score').textContent = 'Score: ' + correctCount + ' / ' + itemsData.length;
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    document.querySelectorAll('.answer-input').forEach(function(input){ input.value = ''; });
+    document.querySelectorAll('.row').forEach(function(r){ r.classList.remove('correct', 'incorrect'); });
+    document.getElementById('score').textContent = '';
+  });
+})();
+</script>
+</body>
+</html>
