@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>freq_log</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070b;color:#eee;font-family:Arial,sans-serif}
+canvas{display:block;width:100vw;height:100vh}
+#ui{position:fixed;z-index:10;top:10px;left:10px;background:#111827e8;padding:10px 12px;border-radius:10px;font-size:14px}
+button{font-size:15px;padding:7px 11px;border:0;border-radius:7px;margin-right:6px}
+#status{color:#aaa}.blue{color:#55aaff}.red{color:#ff5555}
+</style>
+</head>
+<body>
+<div id="ui">
+<button id="start">🎤 Start microphone</button>
+<button id="reset">↺ Reset average</button>
+<span id="status">Waiting…</span><br>
+<span class="blue">● Instantaneous</span>
+&nbsp;&nbsp;<span class="red">● Cumulative average</span>
+&nbsp;&nbsp;|&nbsp;64 bands × 312.5 Hz
+</div>
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const start=document.getElementById('start'),reset=document.getElementById('reset');
+const status=document.getElementById('status');
+const BANDS=64,BAND_WIDTH=312.5;
+let audioCtx,analyser,data,running=false;
+let average=new Float32Array(BANDS);
+let sampleCount=0;
+
+function resize(){
+ const d=devicePixelRatio||1;
+ canvas.width=innerWidth*d;canvas.height=innerHeight*d;
+ ctx.setTransform(d,0,0,d,0,0);
+}
+addEventListener('resize',resize);resize();
+
+function bandEnergy(b){
+ const nyquist=audioCtx.sampleRate/2;
+ const lo=b*BAND_WIDTH,hi=Math.min((b+1)*BAND_WIDTH,nyquist);
+ const loBin=Math.max(0,Math.floor(lo*analyser.fftSize/audioCtx.sampleRate));
+ const hiBin=Math.min(data.length-1,Math.ceil(hi*analyser.fftSize/audioCtx.sampleRate));
+ let sum=0,n=0;
+ for(let k=loBin;k<=hiBin;k++){sum+=data[k];n++}
+ return n?(sum/n)/255:0;
+}
+
+function draw(){
+ if(!running)return;
+ requestAnimationFrame(draw);
+ analyser.getByteFrequencyData(data);
+ const w=innerWidth,h=innerHeight,cx=w/2,cy=h/2+25;
+ const base=Math.min(w,h)*.14,maxR=Math.min(w,h)*.37;
+ ctx.clearRect(0,0,w,h);
+
+ ctx.strokeStyle="#202936";ctx.lineWidth=1;
+ [.25,.5,.75,1].forEach(f=>{
+  ctx.beginPath();ctx.arc(cx,cy,base+maxR*f,0,Math.PI*2);ctx.stroke();
+ });
+
+ // Add each new spectrum permanently to the running arithmetic average.
+ sampleCount++;
+ for(let b=0;b<BANDS;b++){
+  const v=bandEnergy(b);
+  average[b]+=(v-average[b])/sampleCount;
+  const a=-Math.PI/2+(b+.5)/BANDS*Math.PI*2,x=Math.cos(a),y=Math.sin(a);
+
+  // Red = cumulative average; it changes slowly and remains until Reset.
+  const rAvg=base+average[b]*maxR;
+  ctx.strokeStyle="rgba(255,70,70,.95)";ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(cx+x*base,cy+y*base);
+  ctx.lineTo(cx+x*rAvg,cy+y*rAvg);ctx.stroke();
+
+  // Blue = instantaneous spectrum.
+  const rInst=base+v*maxR;
+  ctx.strokeStyle="rgba(70,165,255,.85)";ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(cx+x*base,cy+y*base);
+  ctx.lineTo(cx+x*rInst,cy+y*rInst);ctx.stroke();
+ }
+
+ ctx.strokeStyle="#141a24";ctx.lineWidth=1;
+ for(let b=0;b<BANDS;b++){
+  const a=-Math.PI/2+b/BANDS*Math.PI*2;
+  ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*base,cy+Math.sin(a)*base);
+  ctx.lineTo(cx+Math.cos(a)*(base+maxR),cy+Math.sin(a)*(base+maxR));ctx.stroke();
+ }
+
+ ctx.fillStyle="#0b1018";ctx.beginPath();ctx.arc(cx,cy,base,0,Math.PI*2);ctx.fill();
+ ctx.textAlign="center";ctx.font="bold 18px Arial";ctx.fillStyle="#ddd";
+ ctx.fillText("freq_log",cx,cy-3);
+ ctx.font="13px Arial";ctx.fillStyle="#999";ctx.fillText("64 × 312.5 Hz",cx,cy+19);
+
+ const labels=[[0,"0 Hz"],[8,"2.5 kHz"],[16,"5 kHz"],[24,"7.5 kHz"],
+ [32,"10 kHz"],[40,"12.5 kHz"],[48,"15 kHz"],[56,"17.5 kHz"]];
+ ctx.font="12px Arial";ctx.fillStyle="#bbb";
+ labels.forEach(([b,t])=>{
+  const a=-Math.PI/2+b/BANDS*Math.PI*2,rr=base+maxR+18;
+  ctx.fillText(t,cx+Math.cos(a)*rr,cy+Math.sin(a)*rr);
+ });
+ ctx.fillStyle="#888";ctx.fillText("Band width = 312.5 Hz | Range = 0–20,000 Hz",cx,24);
+}
+
+reset.onclick=()=>{
+ average.fill(0);
+ sampleCount=0;
+};
+
+start.onclick=async()=>{
+ try{
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  await audioCtx.resume();
+  const source=audioCtx.createMediaStreamSource(stream);
+  analyser=audioCtx.createAnalyser();
+  analyser.fftSize=8192;
+  analyser.smoothingTimeConstant=0;
+  data=new Uint8Array(analyser.frequencyBinCount);
+  source.connect(analyser);
+  running=true;start.disabled=true;status.textContent="Microphone active";draw();
+ }catch(e){status.textContent="Microphone error: "+e.name+" — "+e.message;}
+};
+</script>
+</body>
+</html>
