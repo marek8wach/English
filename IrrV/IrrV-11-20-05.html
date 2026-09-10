@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Czasowniki nieregularne 11–20 — ułóż formy po kolei</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+.board{max-width:740px;margin:0 auto;padding:22px 16px 44px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:10px solid var(--board-frame);border-radius:18px;box-shadow:0 0 0 4px var(--board-frame-dark),0 20px 40px rgba(0,0,0,.4);padding:18px 16px 30px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:1.7rem;text-align:center;margin:4px 0 2px;text-shadow:0 2px 0 rgba(0,0,0,.25);}
+.instructions{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;padding:13px 15px;margin-bottom:16px;color:var(--ink);line-height:1.5;font-size:.92rem;}
+.instructions b{color:var(--red-pen);}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;margin-top:8px;font-family:var(--font-mono);color:var(--ink-soft);}
+.item{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;padding:12px 13px;margin-bottom:12px;}
+.item .num{font-weight:700;color:var(--ink-soft);font-size:.85rem;margin-bottom:6px;}
+.tiles{display:flex;flex-wrap:wrap;gap:8px;min-height:44px;}
+.tile{background:#fff;border:2px solid var(--card-line);border-radius:8px;padding:8px 12px;font-family:var(--font-mono);font-size:.98rem;cursor:grab;user-select:none;touch-action:none;transition:background .15s,border-color .15s;}
+.tile .tile-word{border-bottom:1px dashed var(--ink-soft);}
+.tile .tile-word.no-underline{border-bottom:none;}
+.tile.correct{background:#eefaf0;border-color:var(--pen-green);color:var(--pen-green);font-weight:700;}
+.tile.correct .tile-word{border-bottom-color:var(--pen-green);}
+.tile.dragging{opacity:.4;}
+.tile.dragover{border-color:var(--red-pen);}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.8rem;border:none;border-radius:20px;padding:7px 14px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.play-btn{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--board-bg-2);border:none;cursor:pointer;padding:0;}
+.play-btn[hidden]{display:none;}
+.play-btn svg{width:16px;height:16px;color:var(--chalk);}
+.solved-tag{color:var(--pen-green);font-weight:700;font-size:.85rem;}
+.popover{position:fixed;background:var(--ink);color:var(--chalk);font-size:.78rem;padding:4px 9px;border-radius:6px;z-index:50;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.35);pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="board"><div class="frame">
+  <div class="title">Czasowniki nieregularne — zestaw 1</div>
+  <div class="instructions">
+    <b>Jak wykonać to ćwiczenie:</b> W każdej linii ułóż trzy formy czasownika w poprawnej kolejności: <b>bezokolicznik → past simple → past participle</b>. Przeciągnięcie jednego klocka na drugi <b>zamienia je miejscami</b>. Klocek zmieni kolor na zielony, gdy jego forma (i wszystkie klocki po jego lewej stronie) będą na właściwym miejscu. Krótkie dotknięcie klocka (bez przeciągania) pokazuje tłumaczenie i wymowę.
+    <div class="legend">bezokolicznik &nbsp;→&nbsp; past simple &nbsp;→&nbsp; past participle</div>
+  </div>
+  <div id="items"></div>
+</div></div>
+
+<script>
+const CORE_PRONOUNS = new Set(['i','you','he','she','it','we','they']);
+const DICT = {
+  'meet':'spotykać',
+  'met':'spotkał',
+  'read':'czytać / czytał',
+  'take':'brać',
+  'took':'wziął',
+  'taken':'wzięty',
+  'understand':'rozumieć',
+  'understood':'zrozumiał',
+  'write':'pisać',
+  'wrote':'napisał',
+  'written':'napisany',
+  'give':'dawać',
+  'gave':'dał',
+  'given':'dany',
+  'get':'dostawać',
+  'got':'dostał',
+  'forget':'zapominać',
+  'forgot':'zapomniał',
+  'forgotten':'zapomniany',
+  'drink':'pić',
+  'drank':'wypił',
+  'drunk':'wypity',
+  'buy':'kupować',
+  'bought':'kupił'
+};
+function pl(word){
+  const clean = word.toLowerCase().replace(/[^a-z']/g,'');
+  return DICT[clean] || null;
+}
+/* "was/were" reads badly if the slash is spoken, so give TTS a spoken form. */
+const SPOKEN = {};
+function spokenForm(word){ return SPOKEN[word] || word; }
+
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+function speak(text, idx){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-GB';
+  const odd = (idx % 2 === 1);
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* a stale voice object: stay on the default rather than lose the reading */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 0.95;
+  speechSynthesis.speak(u);
+}
+let popoverEl=null;
+function hidePopover(){ if(popoverEl){ popoverEl.remove(); popoverEl=null; } }
+document.addEventListener('click', ()=> hidePopover());
+function showPopover(el, text){
+  hidePopover();
+  const r = el.getBoundingClientRect();
+  popoverEl = document.createElement('div');
+  popoverEl.className='popover';
+  popoverEl.textContent = text;
+  document.body.appendChild(popoverEl);
+  const pr = popoverEl.getBoundingClientRect();
+  popoverEl.style.left = Math.max(4, r.left + r.width/2 - pr.width/2) + 'px';
+  popoverEl.style.top = (r.bottom + 6) + 'px';
+  setTimeout(hidePopover, 2200);
+}
+
+const SPEAKER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="currentColor" stroke="none"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7"/><path d="M18.5 6a8 8 0 0 1 0 12"/></svg>';
+
+/* Each row is one verb's three principal parts, in the order they must end up:
+   infinitive -> past simple -> past participle. */
+const SENTENCES = [
+  {n:1, words:['meet', 'met', 'met']},
+  {n:2, words:['take', 'took', 'taken']},
+  {n:3, words:['understand', 'understood', 'understood']},
+  {n:4, words:['write', 'wrote', 'written']},
+  {n:5, words:['give', 'gave', 'given']},
+  {n:6, words:['get', 'got', 'got']},
+  {n:7, words:['forget', 'forgot', 'forgotten']},
+  {n:8, words:['drink', 'drank', 'drunk']},
+  {n:9, words:['buy', 'bought', 'bought']}
+];
+
+const DRAG_THRESHOLD = 8;
+
+function cascade(tiles, pattern){
+  let prefixOk = true;
+  return tiles.map((t,i) => {
+    const matches = t.dataset.word === pattern[i];
+    const isCorrect = prefixOk && matches;
+    prefixOk = prefixOk && matches;
+    return isCorrect;
+  });
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  // ensure it's not already solved. Several verbs repeat a form
+  // (have/had/had), so compare the arrangement, not the set.
+  if(a.join(' ')===arr.join(' ') && a.length>1){ [a[0],a[1]]=[a[1],a[0]]; }
+  return a;
+}
+
+const itemsEl = document.getElementById('items');
+SENTENCES.forEach(sentenceObj=>{
+  const pattern = sentenceObj.words;
+  const fullText = pattern.map(spokenForm).join(', ');
+  const wrap = document.createElement('div');
+  wrap.className='item';
+  const num = document.createElement('div');
+  num.className='num';
+  num.textContent = sentenceObj.n + '.';
+  wrap.appendChild(num);
+
+  const tilesEl = document.createElement('div');
+  tilesEl.className='tiles';
+  let solved = false;
+  /* The last form dropped into place is spoken as the tile is picked up, so
+     reading the whole row straight away would talk over it (speak() cancels
+     whatever is still playing). Wait a second, then read all three forms. */
+  let readTimer = null;
+  function cancelPendingRead(){ if(readTimer){ clearTimeout(readTimer); readTimer = null; } }
+
+  const scrambled = shuffle(pattern);
+  scrambled.forEach(word=>{
+    const tile = document.createElement('div');
+    tile.className='tile';
+    tile.dataset.word = word;
+    const wordSpan = document.createElement('span');
+    const cleanForUnderline = word.replace(/[^A-Za-z']/g,'');
+    wordSpan.className = 'tile-word' + (cleanForUnderline === 'I' ? ' no-underline' : '');
+    wordSpan.textContent = word;
+    tile.appendChild(wordSpan);
+    tilesEl.appendChild(tile);
+
+    // Pointer Events (not the HTML5 Drag-and-Drop API) so dragging works
+    // identically with touch on Android and with a mouse: native
+    // dragstart/dragover/drop never fire for touch input on Android Chrome,
+    // which is the actual deployment target (Galaxy S10 tablet, no mouse).
+    let startX=0, startY=0, isDragging=false, moved=false;
+
+    function tapWord(){
+      hidePopover();
+      const clean = tile.dataset.word.toLowerCase().replace(/[^a-z']/g,'');
+      speak(spokenForm(tile.dataset.word), sentenceObj.n);
+      if(!CORE_PRONOUNS.has(clean)){
+        const t = pl(tile.dataset.word);
+        if(t) showPopover(tile, t);
+      }
+    }
+
+    function findDropTarget(clientX, clientY){
+      tile.style.pointerEvents = 'none';
+      const el = document.elementFromPoint(clientX, clientY);
+      tile.style.pointerEvents = '';
+      return el ? el.closest('.tile') : null;
+    }
+
+    function resetDragVisuals(){
+      tile.classList.remove('dragging');
+      tile.style.transform = '';
+      tile.style.zIndex = '';
+      document.querySelectorAll('.tile.dragover').forEach(t=>t.classList.remove('dragover'));
+    }
+
+    tile.addEventListener('pointerdown', (e)=>{
+      startX = e.clientX; startY = e.clientY;
+      isDragging = false; moved = false;
+      cancelPendingRead();   // don't read the row over a tile the student just grabbed
+      tile.setPointerCapture(e.pointerId);
+    });
+
+    tile.addEventListener('pointermove', (e)=>{
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if(!isDragging){
+        if(Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+        isDragging = true;
+        moved = true;
+        tile.classList.add('dragging');
+        speak(spokenForm(tile.dataset.word), sentenceObj.n);
+      }
+      tile.style.transform = `translate(${dx}px, ${dy}px)`;
+      tile.style.zIndex = 10;
+      document.querySelectorAll('.tile.dragover').forEach(t=>t.classList.remove('dragover'));
+      const target = findDropTarget(e.clientX, e.clientY);
+      if(target && target !== tile) target.classList.add('dragover');
+    });
+
+    tile.addEventListener('pointerup', (e)=>{
+      e.stopPropagation();
+      if(isDragging){
+        const target = findDropTarget(e.clientX, e.clientY);
+        resetDragVisuals();
+        if(target && target !== tile && tilesEl.contains(target)){
+          const wA = tile.dataset.word, wB = target.dataset.word;
+          setTileWord(tile, wB);
+          setTileWord(target, wA);
+          checkSolved();
+        }
+      } else if(!moved){
+        tapWord();
+      }
+      isDragging = false; moved = false;
+    });
+
+    tile.addEventListener('pointercancel', ()=>{
+      resetDragVisuals();
+      isDragging = false; moved = false;
+    });
+  });
+  wrap.appendChild(tilesEl);
+
+  function setTileWord(tile, word){
+    tile.dataset.word = word;
+    const span = tile.querySelector('.tile-word');
+    span.textContent = word;
+    const cleanForUnderline = word.replace(/[^A-Za-z']/g,'');
+    span.classList.toggle('no-underline', cleanForUnderline === 'I');
+  }
+
+  const controls = document.createElement('div');
+  controls.className='controls-row';
+  const ansBtn = document.createElement('button');
+  ansBtn.className='btn secondary';
+  ansBtn.textContent='Odpowiedź';
+  ansBtn.addEventListener('click', ()=> speak(fullText, sentenceObj.n));
+  controls.appendChild(ansBtn);
+
+  const playBtn = document.createElement('button');
+  playBtn.className='play-btn';
+  playBtn.hidden = true;
+  playBtn.setAttribute('aria-label','Odtwórz trzy formy');
+  playBtn.innerHTML = SPEAKER_SVG;
+  playBtn.addEventListener('click', ()=>{ cancelPendingRead(); speak(fullText, sentenceObj.n); });
+  controls.appendChild(playBtn);
+
+  const tag = document.createElement('span');
+  tag.className='solved-tag';
+  tag.hidden = true;
+  tag.textContent = 'Świetnie!';
+  controls.appendChild(tag);
+
+  wrap.appendChild(controls);
+  itemsEl.appendChild(wrap);
+
+  function checkSolved(){
+    const tiles = Array.from(tilesEl.querySelectorAll('.tile'));
+    const correctFlags = cascade(tiles, pattern);
+    tiles.forEach((t,i)=> t.classList.toggle('correct', correctFlags[i]));
+    const allCorrect = correctFlags.every(Boolean);
+    if(allCorrect && !solved){
+      solved = true;
+      ansBtn.hidden = true;
+      playBtn.hidden = false;
+      tag.hidden = false;
+      cancelPendingRead();
+      readTimer = setTimeout(()=>{
+        readTimer = null;
+        if(solved) speak(fullText, sentenceObj.n);
+      }, 1000);
+    } else if(!allCorrect && solved){
+      solved = false;
+      cancelPendingRead();
+      ansBtn.hidden = false;
+      playBtn.hidden = true;
+      tag.hidden = true;
+    }
+  }
+});
+</script>
+</body>
+</html>

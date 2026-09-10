@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Czasowniki nieregularne 31–40 — uzupełnij formę</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+.board{max-width:740px;margin:0 auto;padding:22px 16px 44px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:10px solid var(--board-frame);border-radius:18px;box-shadow:0 0 0 4px var(--board-frame-dark),0 20px 40px rgba(0,0,0,.4);padding:18px 16px 30px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:1.7rem;text-align:center;margin:4px 0 2px;text-shadow:0 2px 0 rgba(0,0,0,.25);}
+.instructions{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;padding:13px 15px;margin-bottom:16px;color:var(--ink);line-height:1.5;font-size:.92rem;}
+.instructions b{color:var(--red-pen);}
+.legend{display:flex;gap:8px;flex-wrap:wrap;font-size:.78rem;margin-top:8px;font-family:var(--font-mono);color:var(--ink-soft);}
+.item{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;padding:11px 13px;margin-bottom:10px;}
+.row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;}
+.num{font-weight:700;color:var(--ink-soft);font-size:.85rem;padding-top:9px;min-width:22px;}
+.slot{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.given{font-family:var(--font-mono);font-size:.98rem;padding:8px 12px;border:2px solid transparent;border-radius:8px;background:#fff;cursor:pointer;}
+.given .w{border-bottom:1px dashed var(--ink-soft);}
+.gap-input{width:11ch;font-family:var(--font-mono);font-size:.98rem;padding:8px 6px;border:2px solid var(--card-line);border-radius:8px;text-align:center;background:#fff;color:var(--red-pen-dark);}
+.gap-input.correct{border-color:var(--pen-green);background:#eefaf0;color:var(--pen-green);font-weight:700;}
+.gap-input.wrong{border-color:var(--red-pen);}
+.slot-label{font-size:.63rem;font-family:var(--font-mono);color:var(--ink-soft);letter-spacing:.02em;}
+.arrow{color:var(--ink-soft);padding-top:9px;font-size:.9rem;}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.78rem;border:none;border-radius:20px;padding:6px 13px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);display:inline-flex;align-items:center;gap:5px;}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.reveal-text{color:var(--answer-blue);font-size:.9rem;margin-left:2px;font-weight:600;}
+.global-controls{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+.global-controls .btn{font-size:.88rem;padding:9px 20px;}
+#score{text-align:center;color:var(--chalk);font-family:var(--font-mono);margin-top:10px;font-size:.95rem;}
+.popover{position:fixed;background:var(--ink);color:var(--chalk);font-size:.78rem;padding:4px 9px;border-radius:6px;z-index:50;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.35);pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="board"><div class="frame">
+  <div class="title">Czasowniki nieregularne — uzupełnij brakującą formę</div>
+  <div class="instructions">
+    <b>Jak wykonać to ćwiczenie:</b> Trzy formy każdego czasownika stoją już w poprawnej kolejności, ale <b>jedna z nich jest pusta</b> — wpisz ją. Za każdym razem, gdy otworzysz to ćwiczenie, brakuje <b>innej</b> formy, wylosowanej przez program. Podpis pod luką mówi, którą formę trzeba wpisać. Gdy wpiszesz ją poprawnie, pole <b>od razu zrobi się zielone</b> — nie musisz czekać na sprawdzenie. Dotknij widocznej formy, aby usłyszeć wymowę i zobaczyć tłumaczenie.
+    <div class="legend">bezokolicznik &nbsp;→&nbsp; past simple &nbsp;→&nbsp; past participle</div>
+  </div>
+  <div id="items"></div>
+  <div class="global-controls">
+    <button class="btn" id="checkBtn">Sprawdź odpowiedzi</button>
+    <button class="btn secondary" id="clearBtn">Wyczyść</button>
+  </div>
+  <div id="score"></div>
+</div></div>
+
+<script>
+const CORE_PRONOUNS = new Set(['i','you','he','she','it','we','they']);
+const DICT = {
+  'sing':'śpiewać',
+  'sang':'zaśpiewał',
+  'sung':'zaśpiewany',
+  'ride':'jeździć (na czymś)',
+  'rode':'jechał',
+  'ridden':'jechał (imiesłów)',
+  'put':'kłaść',
+  'mean':'znaczyć',
+  'meant':'znaczył',
+  'know':'wiedzieć / znać',
+  'knew':'wiedział',
+  'known':'znany',
+  'drive':'prowadzić (auto)',
+  'drove':'prowadził',
+  'driven':'prowadzony',
+  'cost':'kosztować',
+  'choose':'wybierać',
+  'chose':'wybrał',
+  'chosen':'wybrany',
+  'build':'budować',
+  'built':'zbudował',
+  'bring':'przynosić',
+  'brought':'przyniósł'
+};
+function pl(word){
+  const clean = word.toLowerCase().replace(/[^a-z']/g,'');
+  return DICT[clean] || null;
+}
+/* "was/were" reads badly if the slash is spoken, so give TTS a spoken form. */
+const SPOKEN = {};   // e.g. {'was/were':'was or were'}
+function spokenForm(word){ return SPOKEN[word] || word; }
+
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+function speak(text, idx){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-GB';
+  const odd = (idx % 2 === 1);
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* a stale voice object: stay on the default rather than lose the reading */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 0.95;
+  speechSynthesis.speak(u);
+}
+let popoverEl=null;
+function hidePopover(){ if(popoverEl){ popoverEl.remove(); popoverEl=null; } }
+document.addEventListener('click', (e)=>{ if(!e.target.closest('.given')) hidePopover(); });
+function showPopover(el, text){
+  hidePopover();
+  const r = el.getBoundingClientRect();
+  popoverEl = document.createElement('div');
+  popoverEl.className='popover';
+  popoverEl.textContent = text;
+  document.body.appendChild(popoverEl);
+  const pr = popoverEl.getBoundingClientRect();
+  popoverEl.style.left = Math.max(4, r.left + r.width/2 - pr.width/2) + 'px';
+  popoverEl.style.top = (r.bottom + 6) + 'px';
+  setTimeout(hidePopover, 2200);
+}
+const SPEAKER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;flex-shrink:0;"><polygon points="3 9 3 15 8 15 13 20 13 4 8 9 3 9" fill="currentColor" stroke="none"></polygon><path d="M16 8a5 5 0 0 1 0 8"></path><path d="M19 5a9 9 0 0 1 0 14"></path></svg>';
+
+/* Each verb's three principal parts, already in the correct order.
+   `accepted` lists extra spellings that must also count for that form;
+   the canonical form itself always counts, whether or not it is repeated
+   here. Only "was/were" needs them — it is the one answer that is
+   awkward to type. */
+const LABELS = ['bezokolicznik','past simple','past participle'];
+const VERBS = [
+  {n:1,  forms:['sing', 'sang', 'sung']},
+  {n:2,  forms:['ride', 'rode', 'ridden']},
+  {n:3,  forms:['put', 'put', 'put']},
+  {n:4,  forms:['mean', 'meant', 'meant']},
+  {n:5,  forms:['know', 'knew', 'known']},
+  {n:6,  forms:['drive', 'drove', 'driven']},
+  {n:7,  forms:['cost', 'cost', 'cost']},
+  {n:8,  forms:['choose', 'chose', 'chosen']},
+  {n:9,  forms:['build', 'built', 'built']},
+  {n:10, forms:['bring', 'brought', 'brought']}
+];
+
+/* Which of the three forms is blanked is drawn fresh on every load.
+   A form that also appears in another slot of the same verb (have/had/HAD,
+   COME/came/come) is never the one blanked — the student would just copy it
+   off the row instead of recalling it. For verbs whose three forms are all
+   different, every slot stays in the draw. */
+VERBS.forEach(v => {
+  const candidates = v.forms
+    .map((f,i)=>i)
+    .filter(i => v.forms.every((f,j)=> j===i || f !== v.forms[i]));
+  const pool = candidates.length ? candidates : v.forms.map((f,i)=>i);
+  v.gapIndex = pool[Math.floor(Math.random() * pool.length)];
+});
+
+const itemsEl = document.getElementById('items');
+VERBS.forEach(verb=>{
+  const answer = verb.forms[verb.gapIndex];
+  const spokenAll = verb.forms.map(spokenForm).join(', ');
+
+  const wrap = document.createElement('div');
+  wrap.className='item';
+  const row = document.createElement('div');
+  row.className='row';
+
+  const num = document.createElement('span');
+  num.className='num';
+  num.textContent = verb.n + '.';
+  row.appendChild(num);
+
+  verb.forms.forEach((form, i)=>{
+    if(i > 0){
+      const arrow = document.createElement('span');
+      arrow.className='arrow';
+      arrow.textContent='→';
+      row.appendChild(arrow);
+    }
+    const slot = document.createElement('div');
+    slot.className='slot';
+
+    if(i === verb.gapIndex){
+      const input = document.createElement('input');
+      input.className='gap-input';
+      input.dataset.answer = form;
+      if(verb.accepted && verb.accepted[i]) input.dataset.accepted = JSON.stringify(verb.accepted[i]);
+      input.autocomplete='off';
+      input.spellcheck=false;
+      // green the moment the answer is right — no need to wait for Sprawdź odpowiedzi.
+      // Typing never marks anything wrong: a half-typed word isn't a mistake.
+      input.addEventListener('input', ()=>{
+        input.classList.remove('wrong');
+        input.classList.toggle('correct', isCorrect(input));
+      });
+      input.setAttribute('aria-label', LABELS[i] + ' — ' + verb.forms.filter((_,j)=>j!==i).join(', '));
+      slot.appendChild(input);
+      // only the gap is labelled: the student needs to know which form to supply,
+      // and labelling all three would just add noise
+      const label = document.createElement('span');
+      label.className='slot-label';
+      label.textContent = LABELS[i];
+      slot.appendChild(label);
+    } else {
+      const given = document.createElement('span');
+      given.className='given';
+      const w = document.createElement('span');
+      w.className='w';
+      w.textContent = form;
+      given.appendChild(w);
+      given.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        hidePopover();
+        speak(spokenForm(form), verb.n);
+        const t = pl(form);
+        if(t) showPopover(given, t);
+      });
+      slot.appendChild(given);
+    }
+    row.appendChild(slot);
+  });
+  wrap.appendChild(row);
+
+  const controls = document.createElement('div');
+  controls.className='controls-row';
+
+  const ansBtn = document.createElement('button');
+  ansBtn.className='btn secondary';
+  ansBtn.innerHTML = SPEAKER_SVG + '<span>Odpowiedź</span>';
+  ansBtn.addEventListener('click', ()=> speak(spokenAll, verb.n));
+  controls.appendChild(ansBtn);
+
+  const textBtn = document.createElement('button');
+  textBtn.className='btn secondary';
+  textBtn.textContent='Tekst';
+  const revealSpan = document.createElement('span');
+  revealSpan.className='reveal-text';
+  revealSpan.hidden = true;
+  revealSpan.textContent = answer;
+  textBtn.addEventListener('click', ()=>{
+    revealSpan.hidden = !revealSpan.hidden;
+    textBtn.textContent = revealSpan.hidden ? 'Tekst' : 'Ukryj';
+  });
+  controls.appendChild(textBtn);
+  controls.appendChild(revealSpan);
+
+  wrap.appendChild(controls);
+  itemsEl.appendChild(wrap);
+});
+
+function normalize(s){ return (s||'').trim().toLowerCase().replace(/’/g,"'").replace(/\s+/g,' '); }
+/* "was/were" is the one answer that is really two words, and on a tablet the
+   slash costs a switch to the symbol keyboard. Accept any reasonable way of
+   writing the pair: slash, space, comma, hyphen, "or"/"and" between them,
+   either order, and even run together as one word. Both forms must still be
+   there — half the answer is half the answer. Single-word answers are not
+   touched by this, so nothing else can be matched loosely by accident. */
+function sameForms(canonical, typed, normFn){
+  if(canonical.indexOf('/') < 0) return false;
+  const parts = s => normFn(s)
+      .replace(/[\/,;.+&-]/g,' ')
+      .replace(/\b(or|and)\b/g,' ')
+      .split(/\s+/).filter(Boolean);
+  const want = parts(canonical).sort(), got = parts(typed).sort();
+  if(want.length === got.length && want.every((w,i)=> w === got[i])) return true;
+  const letters = normFn(typed).replace(/[^a-z]/g,'');   // "waswere", "werewas"
+  return letters === want.join('') || letters === want.slice().reverse().join('');
+}
+function isCorrect(inp){
+  const alts = inp.dataset.accepted ? JSON.parse(inp.dataset.accepted) : [];
+  // the canonical answer always counts, whether or not accepted[] repeats it
+  return [inp.dataset.answer].concat(alts)
+    .some(a => normalize(a) === normalize(inp.value) || sameForms(a, inp.value, normalize));
+}
+document.getElementById('checkBtn').addEventListener('click', ()=>{
+  let correct=0;
+  const inputs = document.querySelectorAll('.gap-input');
+  inputs.forEach(inp=>{
+    const ok = isCorrect(inp);
+    inp.classList.toggle('correct', ok);
+    inp.classList.toggle('wrong', !ok && inp.value.trim()!=='');
+    if(ok) correct++;
+  });
+  document.getElementById('score').textContent = `Score: ${correct} / ${inputs.length}`;
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('.gap-input').forEach(inp=>{
+    inp.value='';
+    inp.classList.remove('correct','wrong');
+  });
+  document.getElementById('score').textContent='';
+  document.querySelectorAll('.reveal-text').forEach(r=> r.hidden = true);
+  document.querySelectorAll('.controls-row .btn.secondary').forEach(b=>{ if(b.textContent==='Ukryj') b.textContent='Tekst'; });
+});
+</script>
+</body>
+</html>
