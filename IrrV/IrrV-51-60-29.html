@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ucieczka królika — czasowniki nieregularne 51–60</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --sky:#cfe3d8; --grass:#7fa36a; --grass-dark:#5f7f4e;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+.board{max-width:760px;margin:0 auto;padding:20px 14px 40px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:10px solid var(--board-frame);border-radius:18px;box-shadow:0 0 0 4px var(--board-frame-dark),0 20px 40px rgba(0,0,0,.4);padding:16px 14px 26px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:1.7rem;text-align:center;margin:2px 0 10px;text-shadow:0 2px 0 rgba(0,0,0,.25);}
+.card{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;padding:13px 15px;margin-bottom:12px;line-height:1.5;font-size:.92rem;}
+.card b{color:var(--red-pen);}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.9rem;border:none;border-radius:22px;padding:9px 20px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn:active{transform:translateY(1px);}
+.btn[disabled]{opacity:.45;cursor:default;}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.btn.big{font-size:1.05rem;padding:13px 30px;}
+[hidden]{display:none !important;}
+
+/* ---------- setup ---------- */
+.count-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 4px;}
+.count-row .btn{font-size:.85rem;padding:7px 15px;}
+.count-row .btn.on{background:var(--pen-green);color:#fff;}
+.count-input{width:5.5ch;font-family:var(--font-mono);font-size:.95rem;padding:7px 6px;border:2px solid var(--card-line);border-radius:8px;text-align:center;}
+.verb-list{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
+.verb-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.verb-row .idx{font-weight:700;color:var(--ink-soft);font-size:.85rem;min-width:20px;}
+.verb-in{width:13ch;font-family:var(--font-mono);font-size:.98rem;padding:8px 9px;border:2px solid var(--card-line);border-radius:8px;background:#fff;}
+.verb-in.good{border-color:var(--pen-green);background:#eefaf0;}
+.verb-in.bad{border-color:var(--red-pen);background:#fdf0ee;}
+.resolved{font-family:var(--font-mono);font-size:.82rem;color:var(--pen-green);}
+.resolved .meaning{color:var(--ink-soft);}
+.resolved.err{color:var(--red-pen);font-family:var(--font-body);}
+.setup-actions{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+
+/* ---------- chase scene ---------- */
+.scene{position:relative;height:150px;border-radius:12px;overflow:hidden;background:linear-gradient(#dceadf 0%,var(--sky) 62%,var(--grass) 62%,var(--grass-dark) 100%);border:1px solid var(--board-frame);margin-bottom:10px;}
+.ground-line{position:absolute;left:0;right:0;top:62%;height:2px;background:rgba(0,0,0,.12);}
+.dots{position:absolute;left:9%;right:6%;top:78%;display:flex;gap:4px;align-items:center;}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55);flex:0 0 auto;}
+.runner{position:absolute;bottom:12px;width:78px;height:64px;transition:left .35s ease;}
+.runner svg{width:100%;height:100%;overflow:visible;}
+.runner.go svg{animation:run .34s infinite ease-in-out;}
+@keyframes run{0%,100%{transform:translateY(0) rotate(-1.5deg);}50%{transform:translateY(-6px) rotate(1.5deg);}}
+#devil{left:1%;}
+#bunny{left:50%;}
+.gap-badge{position:absolute;top:7px;left:50%;transform:translateX(-50%);background:rgba(46,32,22,.78);color:var(--chalk);font-family:var(--font-mono);font-size:.8rem;padding:3px 11px;border-radius:12px;white-space:nowrap;}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--font-mono);font-size:.85rem;color:var(--chalk);margin:0 2px 10px;}
+.topbar .btn{font-size:.78rem;padding:6px 14px;}
+/* Everything the student touches sits ABOVE the answer field, so the tablet's
+   on-screen keyboard cannot cover a control. There is no submit button at all:
+   a correct answer is accepted the moment it is typed. */
+.confetti{position:absolute;top:-14px;width:8px;height:13px;border-radius:2px;pointer-events:none;animation:fall 1.5s linear forwards;}
+@keyframes fall{0%{transform:translateY(0) rotate(0deg);opacity:1;}100%{transform:translateY(170px) rotate(560deg);opacity:0;}}
+.runner.cheer svg{animation:hop .46s ease-in-out 4;}
+@keyframes hop{0%,100%{transform:translateY(0);}50%{transform:translateY(-24px);}}
+.cheer-sign{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:3rem;color:var(--pen-green);text-shadow:0 2px 0 #fff,0 0 14px rgba(255,255,255,.9);z-index:6;animation:pop .4s ease-out;}
+@keyframes pop{0%{transform:scale(.4);opacity:0;}100%{transform:scale(1);opacity:1;}}
+
+/* ---------- question ---------- */
+.forms{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px;}
+.form-slot{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;}
+.form-word{font-family:var(--font-mono);font-size:1.15rem;padding:8px 12px;background:#fff;border:2px solid transparent;border-radius:8px;}
+.form-gap{width:12ch;font-family:var(--font-mono);font-size:1.15rem;padding:8px 6px;border:2px solid var(--board-bg-2);border-radius:8px;text-align:center;background:#fff;color:var(--red-pen-dark);}
+.form-gap.shake{animation:shake .3s;border-color:var(--red-pen);background:#fdf0ee;}
+.form-gap.good{border-color:var(--pen-green);background:#eefaf0;color:var(--pen-green);font-weight:700;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+.slot-label{font-size:.63rem;font-family:var(--font-mono);color:var(--ink-soft);}
+.arrow{color:var(--ink-soft);font-size:.95rem;padding-bottom:14px;}
+.help-row{display:flex;gap:9px;align-items:center;justify-content:center;margin:0 0 9px;flex-wrap:wrap;}
+.help-row .btn{min-height:44px;padding:11px 22px;font-size:.88rem;}
+.help-note{color:var(--chalk);opacity:.85;font-size:clamp(.72rem,3vw,.8rem);}
+.hint-line{text-align:center;font-family:var(--font-mono);font-size:clamp(.95rem,4.2vw,1.15rem);
+  letter-spacing:.22em;color:var(--answer-blue);min-height:1.4em;margin-top:6px;}
+.hint-line .todo{color:var(--card-line);}
+.meaning-line{text-align:center;color:var(--ink-soft);font-size:.85rem;margin-top:4px;}
+.timer-track{height:7px;background:var(--card-line);border-radius:4px;overflow:hidden;margin:12px 0 10px;}
+.timer-fill{height:100%;width:100%;background:var(--pen-green);border-radius:4px;}
+.timer-fill.hot{background:var(--red-pen);}
+.play-actions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;}
+
+/* ---------- end overlay ---------- */
+.overlay{position:fixed;inset:0;background:rgba(46,32,22,.82);display:flex;align-items:center;justify-content:center;z-index:60;padding:18px;}
+.overlay-box{background:var(--card-bg);border-radius:16px;padding:24px 26px;text-align:center;max-width:340px;width:100%;box-shadow:0 18px 40px rgba(0,0,0,.45);}
+.end-sign{font-family:var(--font-display);font-size:3.1rem;color:var(--red-pen);margin:0 0 4px;letter-spacing:.04em;}
+.end-stats{font-family:var(--font-mono);font-size:.9rem;color:var(--ink-soft);margin-bottom:18px;line-height:1.7;}
+.end-stats b{color:var(--ink);}
+.overlay-box .btn{margin:5px 4px;}
+.countdown{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(253,250,243,.8);font-family:var(--font-display);font-size:3.4rem;color:var(--board-bg);z-index:5;}
+.sound-toggle{font-size:.8rem;color:var(--ink-soft);display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="board"><div class="frame">
+  <div class="title">Ucieczka królika 🐰</div>
+  <div class="subtitle" style="text-align:center;color:var(--chalk);opacity:.9;font-weight:600;margin:0 0 10px;">czasowniki 51–60</div>
+
+  <!-- ============ SETUP ============ -->
+  <div id="setup">
+    <div class="card">
+      <b>Jak grać:</b> Diabeł tasmański goni królika. Królik zaczyna <b>5 kroków</b> przed nim.
+      Zobaczysz trzy formy czasownika, ale <b>jednej będzie brakować</b> — po prostu ją wpisz.
+      Poprawna forma zostaje przyjęta <b>od razu</b>, nie trzeba nic naciskać.
+      Przycisk <b>Pomoc</b> pokazuje kolejną literę i czyta tę formę na głos — zegar wtedy stoi.
+      Dobra odpowiedź = królik zyskuje <b>jeden krok</b> i ten czasownik już nie wraca.
+      Zwłoka = królik <b>traci krok</b> — pierwszy po <b>7–11 sekundach</b>
+      (im dłuższa forma do wpisania, tym więcej czasu), a każdy następny co <b>4 sekundy</b>.
+      Gdy kroki się skończą, diabeł dogoni królika. Gdy odgadniesz <b>wszystkie</b> czasowniki — królik ucieka!
+          </div>
+
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:8px;">Czasowniki w tej rundzie:</div>
+      <div class="verb-list" id="verbList"></div>
+      <div class="setup-actions">
+        <button class="btn big" id="startBtn">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ GAME ============ -->
+  <div id="game" hidden>
+    <div class="topbar">
+      <span id="scoreLabel">Poprawne: 0</span>
+      <label class="sound-toggle" style="color:var(--chalk);">
+        <input type="checkbox" id="soundChk" checked> dźwięk
+      </label>
+      <button class="btn secondary" id="quitBtn">Zakończ</button>
+    </div>
+
+    <div class="scene" id="scene">
+      <div class="ground-line"></div>
+      <div class="dots" id="dots"></div>
+      <div class="gap-badge" id="gapBadge">Przewaga: 5 kroków</div>
+      <div class="runner" id="devil">
+        <svg viewBox="1.6 0 80 68" aria-label="diabeł tasmański">
+          <path d="M17 44 q-9 -5 -6 -14" stroke="#1f1611" stroke-width="6.5" fill="none" stroke-linecap="round"/>
+          <path d="M30 54 L24 63" stroke="#0f0a08" stroke-width="6" stroke-linecap="round"/>
+          <path d="M50 54 L57 63" stroke="#0f0a08" stroke-width="6" stroke-linecap="round"/>
+          <ellipse cx="40" cy="41" rx="23" ry="15" fill="#1f1611" stroke="#0b0806" stroke-width="2"/>
+          <path d="M45 29 q10 5 8 15" stroke="#f0e2cc" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <circle cx="50" cy="19" r="6" fill="#1f1611" stroke="#0b0806" stroke-width="1.6"/><circle cx="50" cy="19.5" r="3" fill="#a34a48"/>
+          <circle cx="66" cy="20" r="5.4" fill="#1f1611" stroke="#0b0806" stroke-width="1.6"/><circle cx="66" cy="20.5" r="2.7" fill="#a34a48"/>
+          <circle cx="58" cy="32" r="14" fill="#1f1611" stroke="#0b0806" stroke-width="2"/>
+          <circle cx="63" cy="28" r="2.6" fill="#ffc94d"/><circle cx="63.8" cy="28.4" r="1.2" fill="#0b0806"/>
+          <path d="M58 39 q9 7 15 1 q-8 -1 -15 -1 z" fill="#7a2320"/>
+          <path d="M60.5 39 l1.9 3.3 l1.9 -3.3 M66 39 l1.9 3.1 l1.9 -3.1" stroke="#fff" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="runner" id="bunny">
+        <svg viewBox="2.4 0 80 68" aria-label="królik">
+          <circle cx="20" cy="39" r="8" fill="#e0cdb6" stroke="#5e4430" stroke-width="2"/>
+          <path d="M31 54 L25 63" stroke="#9c7c5e" stroke-width="5.5" stroke-linecap="round"/>
+          <path d="M49 54 L56 63" stroke="#9c7c5e" stroke-width="5.5" stroke-linecap="round"/>
+          <ellipse cx="52" cy="15" rx="5.2" ry="14" fill="#c2a184" stroke="#5e4430" stroke-width="2" transform="rotate(-13 52 15)"/>
+          <ellipse cx="52" cy="16" rx="2.4" ry="9" fill="#d16b83" transform="rotate(-13 52 16)"/>
+          <ellipse cx="63" cy="18" rx="4.8" ry="12.5" fill="#c2a184" stroke="#5e4430" stroke-width="2" transform="rotate(9 63 18)"/>
+          <ellipse cx="63" cy="19" rx="2.2" ry="8" fill="#d16b83" transform="rotate(9 63 19)"/>
+          <ellipse cx="40" cy="41" rx="22" ry="14" fill="#c2a184" stroke="#5e4430" stroke-width="2"/>
+          <circle cx="58" cy="33" r="13" fill="#c2a184" stroke="#5e4430" stroke-width="2"/>
+          <circle cx="63" cy="30" r="2.3" fill="#241a15"/><circle cx="63.7" cy="29.4" r=".8" fill="#fff"/>
+          <ellipse cx="70" cy="35" rx="2.7" ry="2" fill="#d16b83" stroke="#5e4430" stroke-width="1.2"/>
+          <path d="M67 39 q3 2.5 5 0" stroke="#5e4430" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="cheer-sign" id="cheerSign" hidden>Brawo!</div>
+      <div class="countdown" id="countdown" hidden>3</div>
+    </div>
+
+    <div class="help-row">
+      <button class="btn secondary" id="helpBtn">Pomoc</button>
+      <span class="help-note">kolejna litera i wymowa</span>
+    </div>
+
+    <div class="card">
+      <div class="forms" id="forms"></div>
+      <div class="hint-line" id="hint"></div>
+      <div class="meaning-line" id="meaning"></div>
+      <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ============ END ============ -->
+<div class="overlay" id="endOverlay" hidden>
+  <div class="overlay-box">
+    <div class="end-sign">End</div>
+    <div class="end-stats" id="endStats"></div>
+    <button class="btn big" id="againBtn">Jeszcze raz</button>
+    <button class="btn secondary" id="finishBtn">Zakończ</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   Irregular-verb chase. The verb list is chosen by the student on the
+   setup screen: they type any one of a verb's three forms and the table
+   below resolves it to the whole triple.
+   ===================================================================== */
+const LABELS = ['bezokolicznik','past simple','past participle'];
+const VERB_TABLE = [
+  ['be','was/were','been','być'],
+  ['beat','beat','beaten','bić / pokonać'],
+  ['become','became','become','stawać się'],
+  ['begin','began','begun','zaczynać'],
+  ['bend','bent','bent','zginać'],
+  ['bite','bit','bitten','gryźć'],
+  ['blow','blew','blown','dmuchać'],
+  ['break','broke','broken','łamać / tłuc'],
+  ['bring','brought','brought','przynosić'],
+  ['build','built','built','budować'],
+  ['buy','bought','bought','kupować'],
+  ['catch','caught','caught','łapać'],
+  ['choose','chose','chosen','wybierać'],
+  ['come','came','come','przychodzić'],
+  ['cost','cost','cost','kosztować'],
+  ['cut','cut','cut','ciąć'],
+  ['deal','dealt','dealt','zajmować się'],
+  ['dig','dug','dug','kopać'],
+  ['do','did','done','robić'],
+  ['draw','drew','drawn','rysować'],
+  ['drink','drank','drunk','pić'],
+  ['drive','drove','driven','prowadzić (auto)'],
+  ['eat','ate','eaten','jeść'],
+  ['fall','fell','fallen','spadać'],
+  ['feed','fed','fed','karmić'],
+  ['feel','felt','felt','czuć'],
+  ['fight','fought','fought','walczyć'],
+  ['find','found','found','znajdować'],
+  ['fly','flew','flown','latać'],
+  ['forget','forgot','forgotten','zapominać'],
+  ['forgive','forgave','forgiven','wybaczać'],
+  ['freeze','froze','frozen','zamarzać'],
+  ['get','got','got','dostawać'],
+  ['give','gave','given','dawać'],
+  ['go','went','gone','iść / jechać'],
+  ['grow','grew','grown','rosnąć'],
+  ['hang','hung','hung','wieszać'],
+  ['have','had','had','mieć'],
+  ['hear','heard','heard','słyszeć'],
+  ['hide','hid','hidden','chować (się)'],
+  ['hit','hit','hit','uderzać'],
+  ['hold','held','held','trzymać'],
+  ['hurt','hurt','hurt','ranić / boleć'],
+  ['keep','kept','kept','trzymać / zachować'],
+  ['know','knew','known','wiedzieć / znać'],
+  ['lay','laid','laid','kłaść'],
+  ['lead','led','led','prowadzić'],
+  ['learn','learnt','learnt','uczyć się'],
+  ['leave','left','left','zostawiać / wyjeżdżać'],
+  ['lend','lent','lent','pożyczać (komuś)'],
+  ['let','let','let','pozwalać'],
+  ['lie','lay','lain','leżeć'],
+  ['light','lit','lit','zapalać'],
+  ['lose','lost','lost','gubić / przegrywać'],
+  ['make','made','made','robić / tworzyć'],
+  ['mean','meant','meant','znaczyć'],
+  ['meet','met','met','spotykać'],
+  ['pay','paid','paid','płacić'],
+  ['put','put','put','kłaść'],
+  ['read','read','read','czytać'],
+  ['ride','rode','ridden','jeździć (na czymś)'],
+  ['ring','rang','rung','dzwonić'],
+  ['rise','rose','risen','wznosić się'],
+  ['run','ran','run','biegać'],
+  ['say','said','said','mówić / powiedzieć'],
+  ['see','saw','seen','widzieć'],
+  ['sell','sold','sold','sprzedawać'],
+  ['send','sent','sent','wysyłać'],
+  ['set','set','set','ustawiać'],
+  ['shake','shook','shaken','trząść'],
+  ['shine','shone','shone','świecić'],
+  ['shoot','shot','shot','strzelać'],
+  ['show','showed','shown','pokazywać'],
+  ['shut','shut','shut','zamykać'],
+  ['sing','sang','sung','śpiewać'],
+  ['sink','sank','sunk','tonąć'],
+  ['sit','sat','sat','siedzieć'],
+  ['sleep','slept','slept','spać'],
+  ['speak','spoke','spoken','mówić'],
+  ['spend','spent','spent','spędzać / wydawać'],
+  ['stand','stood','stood','stać'],
+  ['steal','stole','stolen','kraść'],
+  ['stick','stuck','stuck','przyklejać'],
+  ['swim','swam','swum','pływać'],
+  ['take','took','taken','brać'],
+  ['teach','taught','taught','uczyć (kogoś)'],
+  ['tear','tore','torn','drzeć'],
+  ['tell','told','told','mówić / opowiadać'],
+  ['think','thought','thought','myśleć'],
+  ['throw','threw','thrown','rzucać'],
+  ['understand','understood','understood','rozumieć'],
+  ['wake','woke','woken','budzić (się)'],
+  ['wear','wore','worn','nosić (ubranie)'],
+  ['win','won','won','wygrywać'],
+  ['write','wrote','written','pisać']
+].map(r => ({forms:[r[0],r[1],r[2]], pl:r[3]}));
+
+/* Extra spellings that must also count, keyed by verb base then slot. */
+const ALSO_ACCEPTED = {
+  'be':{1:['was were','was or were','were/was']},
+  'learn':{1:['learned'],2:['learned']},
+  'show':{1:['showed'],2:['showed']},
+  'get':{2:['gotten']}
+};
+/* TTS reads a slash as "slash", so give it words instead. */
+const SPOKEN = {'was/were':'was or were'};
+const spokenForm = w => SPOKEN[w] || w;
+
+function norm(s){ return (s||'').trim().toLowerCase().replace(/’/g,"'").replace(/\s+/g,' '); }
+/* "was/were" is the one answer that is really two words, and on a tablet the
+   slash costs a switch to the symbol keyboard. Accept any reasonable way of
+   writing the pair: slash, space, comma, hyphen, "or"/"and" between them,
+   either order, and even run together as one word. Both forms must still be
+   there — half the answer is half the answer. Single-word answers are not
+   touched by this, so nothing else can be matched loosely by accident. */
+function sameForms(canonical, typed, normFn){
+  if(canonical.indexOf('/') < 0) return false;
+  const parts = s => normFn(s)
+      .replace(/[\/,;.+&-]/g,' ')
+      .replace(/\b(or|and)\b/g,' ')
+      .split(/\s+/).filter(Boolean);
+  const want = parts(canonical).sort(), got = parts(typed).sort();
+  if(want.length === got.length && want.every((w,i)=> w === got[i])) return true;
+  const letters = normFn(typed).replace(/[^a-z]/g,'');   // "waswere", "werewas"
+  return letters === want.join('') || letters === want.slice().reverse().join('');
+}
+
+/* Some forms belong to more than one verb ("lay" is the base of lay and the
+   past of lie; "found" is the past of find). A base-form match wins, so
+   typing the infinitive always gets you the verb you meant. */
+function resolveVerb(text){
+  const t = norm(text);
+  if(!t) return null;
+  return VERB_TABLE.find(v => v.forms[0] === t)
+      || VERB_TABLE.find(v => v.forms.some(f => f === t))
+      || null;
+}
+
+/* ---------------- voices (§5.4: male first) ---------------- */
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+let speakCount = 0;
+/* `onDone` fires when the reading has actually finished, so the game can wait
+   for it instead of guessing at a delay. It is called exactly once, and always
+   — with the sound off, with no speech support at all, and on the Android
+   builds where `onend` never arrives (hence the safety timer). */
+function speak(text, onDone){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 300);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-GB';
+  const odd = (++speakCount % 2 === 1);
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* a stale voice object: stay on the default rather than lose the reading */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 0.95;
+  u.onend = done;
+  u.onerror = done;
+  setTimeout(done, 7000);
+  speechSynthesis.speak(u);
+}
+
+/* =====================  SETUP SCREEN  ===================== */
+const verbListEl = document.getElementById('verbList');
+const startBtn   = document.getElementById('startBtn');
+
+/* This file drills a fixed set, so there is nothing to type in: the verbs are
+   shown for reference and Start is always live. The chase itself is unchanged. */
+const SET = ['lose', 'lend', 'hurt', 'hit', 'hide', 'grow', 'fight', 'feel', 'draw', 'catch'];
+function chosenVerbs(){
+  return SET.map(base => VERB_TABLE.find(v => v.forms[0] === base)).filter(Boolean);
+}
+function showVerbs(){
+  verbListEl.innerHTML = '';
+  chosenVerbs().forEach((v,i)=>{
+    const row = document.createElement('div');
+    row.className = 'verb-row';
+    row.innerHTML = '<span class="idx">' + (i+1) + '.</span>';
+    const out = document.createElement('span');
+    out.className = 'resolved';
+    out.innerHTML = v.forms.join(' → ') + ' <span class="meaning">(' + v.pl + ')</span>';
+    row.appendChild(out);
+    verbListEl.appendChild(row);
+  });
+}
+
+/* =====================  GAME  ===================== */
+const START_GAP = 5;
+const TRACK_SLOTS = 10;          // how much of the lead the scene can draw
+/* The grace before the FIRST step is lost scales with how much there is to
+   type — 7s for a short form, 11s for a long one, walked between the two so
+   there is no cliff between a five- and a six-letter word. Every step after
+   that is a flat 4s, whatever the verb. The clock restarts with each new verb. */
+const FIRST_SHORT = 7000, FIRST_LONG = 11000, NEXT_STEP = 4000;
+const SHORT_LEN = 3, LONG_LEN = 6;           // "go"/"ate" … "driven", "brought", "forgotten"
+function firstDelay(word){
+  const n = (word || '').length;             // "was/were" counts its slash: it is typed
+  if(n <= SHORT_LEN) return FIRST_SHORT;
+  if(n >= LONG_LEN)  return FIRST_LONG;
+  const seconds = FIRST_SHORT/1000 + (n - SHORT_LEN) / (LONG_LEN - SHORT_LEN) * (FIRST_LONG - FIRST_SHORT)/1000;
+  return Math.round(seconds) * 1000;         // whole seconds, so 7/8/9/10/11
+}
+
+const setupEl = document.getElementById('setup');
+const gameEl  = document.getElementById('game');
+const formsEl = document.getElementById('forms');
+const meaningEl = document.getElementById('meaning');
+const timerFill = document.getElementById('timerFill');
+const bunnyEl = document.getElementById('bunny');
+const devilEl = document.getElementById('devil');
+const dotsEl  = document.getElementById('dots');
+const gapBadge = document.getElementById('gapBadge');
+const sceneEl = document.getElementById('scene');
+const scoreLabel = document.getElementById('scoreLabel');
+const hintEl = document.getElementById('hint');
+const helpBtn = document.getElementById('helpBtn');
+const cheerSign = document.getElementById('cheerSign');
+const endOverlay = document.getElementById('endOverlay');
+
+let verbs=[], queue=[], current=null, gapInput=null, currentAnswer='';
+let shown = 0;                 // letters Pomoc has given away for this verb
+let gap=START_GAP, score=0, running=false;
+let tickIndex=0, deadline=0, interval=0, raf=null, paused=false, pausedAt=0;
+
+function best(){ try { return +(localStorage.getItem('irrChaseBest')||0); } catch(e){ return 0; } }
+function setBest(v){ try { localStorage.setItem('irrChaseBest', v); } catch(e){} }
+
+function shuffled(a){ const c=a.slice(); for(let i=c.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [c[i],c[j]]=[c[j],c[i]]; } return c; }
+
+/* Never blank a form that is visible elsewhere in the same row — the student
+   would copy it instead of recalling it (same rule as the 03 exercise). */
+function pickGapIndex(forms){
+  const distinct = forms.map((f,i)=>i).filter(i => forms.every((f,j)=> j===i || f !== forms[i]));
+  const pool = distinct.length ? distinct : forms.map((f,i)=>i);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+/* Polish plural: 1 krok, 2-4 kroki, 5-21 kroków, then 22/23/24 kroki again —
+   the teens (12-14) keep the genitive. */
+function krok(n){
+  if(n === 1) return 'krok';
+  const last = n % 10, teen = n % 100;
+  if(last >= 2 && last <= 4 && !(teen >= 12 && teen <= 14)) return 'kroki';
+  return 'kroków';
+}
+function renderScene(){
+  const shown = Math.min(gap, TRACK_SLOTS);
+  bunnyEl.style.left = (4 + shown / TRACK_SLOTS * 62) + '%';
+  gapBadge.textContent = 'Przewaga: ' + gap + ' ' + krok(gap);
+  dotsEl.innerHTML = '';
+  for(let i=0;i<shown;i++){ const d=document.createElement('span'); d.className='dot'; dotsEl.appendChild(d); }
+}
+function setRunning(on){
+  bunnyEl.classList.toggle('go', on);
+  devilEl.classList.toggle('go', on);
+}
+
+function nextVerb(){
+  // A verb answered correctly is gone for good; the queue holds only the ones
+  // still owed, so nothing correct is ever asked twice.
+  if(!queue.length){ winGame(); return; }
+  current = queue.shift();
+  const gi = pickGapIndex(current.forms);
+  formsEl.innerHTML = '';
+  current.forms.forEach((form,i)=>{
+    if(i>0){ const a=document.createElement('span'); a.className='arrow'; a.textContent='→'; formsEl.appendChild(a); }
+    const slot = document.createElement('div');
+    slot.className='form-slot';
+    if(i === gi){
+      gapInput = document.createElement('input');
+      gapInput.className='form-gap';
+      gapInput.type='text'; gapInput.autocomplete='off'; gapInput.spellcheck=false; gapInput.autocapitalize='off';
+      gapInput.dataset.answer = form;
+      currentAnswer = form;
+      gapInput.dataset.slot = i;
+      gapInput.setAttribute('aria-label', LABELS[i]);
+      // Accepted the instant it is right — the tablet keyboard would cover a
+      // submit button, so there isn't one.
+      gapInput.addEventListener('input', ()=>{ if(isRight()) submit(); });
+      gapInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') e.preventDefault(); });
+      slot.appendChild(gapInput);
+      const lab=document.createElement('span'); lab.className='slot-label'; lab.textContent=LABELS[i];
+      slot.appendChild(lab);
+    } else {
+      const w=document.createElement('span'); w.className='form-word'; w.textContent=form;
+      slot.appendChild(w);
+      const lab=document.createElement('span'); lab.className='slot-label'; lab.textContent=' ';
+      slot.appendChild(lab);
+    }
+    formsEl.appendChild(slot);
+  });
+  meaningEl.textContent = current.pl;
+  shown = 0;
+  renderHint();
+  helpBtn.disabled = false;
+  gapInput.focus();
+  tickIndex = 0;
+  startInterval();
+}
+
+/* Pomoc gives one more letter of the missing form and says it aloud. The
+   letters are shown masked rather than typed into the box: the student still
+   has to write the word, which costs time — the game's only currency — so the
+   help is real without handing over a free step. The clock is stopped while it
+   speaks, for the same reason listening is free after a correct answer. */
+function renderHint(){
+  if(!currentAnswer || shown === 0){ hintEl.textContent = ''; return; }
+  hintEl.innerHTML = '';
+  [...currentAnswer].forEach((ch,i)=>{
+    const sp = document.createElement('span');
+    if(i < shown){ sp.textContent = (ch === ' ' ? '\u00a0' : ch); }
+    else { sp.className = 'todo'; sp.textContent = (ch === ' ' ? '\u00a0' : '_'); }
+    hintEl.appendChild(sp);
+  });
+}
+function helpOnce(){
+  if(!running || !currentAnswer || helpBtn.disabled) return;
+  if(shown < currentAnswer.length) shown++;
+  renderHint();
+  if(shown >= currentAnswer.length) helpBtn.disabled = true;
+  const wasPaused = paused;
+  if(!wasPaused){ paused = true; pausedAt = performance.now(); }
+  speak(spokenForm(currentAnswer), ()=>{
+    if(!wasPaused && paused){ deadline += performance.now() - pausedAt; paused = false; }
+    if(gapInput && !gapInput.disabled) gapInput.focus();
+  });
+}
+
+function acceptedFor(verb, slot){
+  const extra = (ALSO_ACCEPTED[verb.forms[0]] || {})[slot] || [];
+  return [verb.forms[slot]].concat(extra);
+}
+function isRight(){
+  if(!gapInput || !current) return false;
+  const typed = gapInput.value;
+  return acceptedFor(current, +gapInput.dataset.slot)
+    .some(a => norm(a) === norm(typed) || sameForms(a, typed, norm));
+}
+function submit(){
+  if(!running || !gapInput || !isRight()) return;
+  stopInterval();
+  gapInput.classList.add('good');
+  gapInput.disabled = true;
+  helpBtn.disabled = true;
+  hintEl.textContent = '';
+  score++;
+  gap++;
+  scoreLabel.textContent = 'Poprawne: ' + score + ' / ' + verbs.length;
+  renderScene();
+  // Read the verb that was just on screen — all three forms, not only the word
+  // the student typed — and hold the next verb until the reading has finished,
+  // so it is never talked over. The clock is stopped for the whole reading, so
+  // listening costs nothing.
+  speak(current.forms.map(spokenForm).join(', '), ()=>{
+    setTimeout(()=>{ if(running) nextVerb(); }, 250);
+  });
+}
+
+function loseStep(){
+  gap--;
+  renderScene();
+  if(gap <= 0) endGame();
+}
+
+/* rAF rather than setTimeout so the countdown bar and the step loss stay in
+   step, and so a pause can freeze both at once. */
+function startInterval(){
+  interval = tickIndex === 0 ? firstDelay(currentAnswer) : NEXT_STEP;
+  deadline = performance.now() + interval;
+  timerFill.style.width = '100%';
+  timerFill.classList.remove('hot');
+  if(!raf) raf = requestAnimationFrame(frame);
+}
+function stopInterval(){
+  if(raf){ cancelAnimationFrame(raf); raf = null; }
+}
+function frame(now){
+  raf = null;
+  if(!running) return;
+  if(paused){ raf = requestAnimationFrame(frame); return; }
+  const left = deadline - now;
+  const pct = Math.max(0, left / interval * 100);
+  timerFill.style.width = pct + '%';
+  timerFill.classList.toggle('hot', pct < 34);
+  if(left <= 0){
+    tickIndex++;
+    loseStep();
+    if(!running) return;
+    startInterval();
+    return;
+  }
+  raf = requestAnimationFrame(frame);
+}
+/* Switching away from the tablet's browser must not cost the student steps. */
+document.addEventListener('visibilitychange', ()=>{
+  if(!running) return;
+  if(document.hidden){ paused = true; pausedAt = performance.now(); }
+  else if(paused){ deadline += performance.now() - pausedAt; paused = false; }
+});
+
+function endGame(){
+  running = false;
+  helpBtn.disabled = true;
+  hintEl.textContent = '';
+  stopInterval();
+  setRunning(false);
+  gap = 0;
+  bunnyEl.style.left = devilEl.style.left || '1%';
+  gapBadge.textContent = 'Złapany!';
+  dotsEl.innerHTML = '';
+  timerFill.style.width = '0%';
+  if(gapInput) gapInput.disabled = true;
+  showEnd(false);
+}
+
+/* Every verb answered: a short cheer in the scene, then the end card. */
+const CONFETTI_COLOURS = ['#d1483a','#4f8f5e','#ffc94d','#1d4ed8','#d16b83','#f5ead9'];
+function celebrate(){
+  cheerSign.hidden = false;
+  bunnyEl.classList.add('cheer');
+  for(let i=0;i<34;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = (4 + Math.random()*92) + '%';
+    c.style.background = CONFETTI_COLOURS[i % CONFETTI_COLOURS.length];
+    c.style.animationDelay = (Math.random()*0.5).toFixed(2) + 's';
+    sceneEl.appendChild(c);
+  }
+  setTimeout(()=>{
+    sceneEl.querySelectorAll('.confetti').forEach(c=>c.remove());
+    bunnyEl.classList.remove('cheer');
+    cheerSign.hidden = true;
+  }, 2000);
+}
+function winGame(){
+  running = false;
+  helpBtn.disabled = true;
+  hintEl.textContent = '';
+  stopInterval();
+  setRunning(false);
+  timerFill.style.width = '100%';
+  formsEl.innerHTML = '';
+  meaningEl.textContent = '';
+  gapBadge.textContent = 'Uciekł!';
+  celebrate();
+  setTimeout(()=> showEnd(true), 2100);
+}
+
+function showEnd(won){
+  const b = Math.max(best(), score);
+  setBest(b);
+  const sign = document.querySelector('.end-sign');
+  sign.textContent = won ? 'Brawo!' : 'End';
+  sign.style.color = won ? 'var(--pen-green)' : 'var(--red-pen)';
+  document.getElementById('endStats').innerHTML = won
+    ? 'Wszystkie czasowniki odgadnięte: <b>' + score + '</b>' +
+      '<br>Królik uciekł z przewagą <b>' + gap + ' ' + krok(gap) + '</b>'
+    : 'Poprawne odpowiedzi: <b>' + score + '</b><br>Najlepszy wynik: <b>' + b + '</b>';
+  endOverlay.hidden = false;
+}
+
+function startGame(){
+  verbs = chosenVerbs();
+  if(!verbs.length) return;
+  setupEl.hidden = true;
+  gameEl.hidden = false;
+  endOverlay.hidden = true;
+  queue = shuffled(verbs);
+  gap = START_GAP; score = 0; running = true; paused = false;
+  scoreLabel.textContent = 'Poprawne: 0 / ' + verbs.length;
+  sceneEl.querySelectorAll('.confetti').forEach(c=>c.remove());
+  bunnyEl.classList.remove('cheer');
+  cheerSign.hidden = true;
+  renderScene();
+  setRunning(true);
+  // a short "ready" count so the 4 seconds don't start before the student looks
+  const cd = document.getElementById('countdown');
+  let n = 3;
+  cd.hidden = false; cd.textContent = n;
+  formsEl.innerHTML = ''; meaningEl.textContent = ''; timerFill.style.width = '100%';
+  const iv = setInterval(()=>{
+    n--;
+    if(n === 0){ clearInterval(iv); cd.hidden = true; if(running) nextVerb(); }
+    else cd.textContent = n;
+  }, 700);
+}
+
+startBtn.addEventListener('click', startGame);
+helpBtn.addEventListener('click', helpOnce);
+document.getElementById('quitBtn').addEventListener('click', ()=>{
+  running = false; stopInterval(); setRunning(false);
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  gameEl.hidden = true; setupEl.hidden = false; endOverlay.hidden = true;
+});
+document.getElementById('againBtn').addEventListener('click', startGame);
+document.getElementById('finishBtn').addEventListener('click', ()=>{
+  endOverlay.hidden = true;
+  gameEl.hidden = true;
+  setupEl.hidden = false;
+});
+
+/* boot */
+showVerbs();
+</script>
+</body>
+</html>
