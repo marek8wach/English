@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>High Note 3 · 1A — słownictwo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --pen-green:#4f8f5e;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font-body); color:var(--ink);
+  background:radial-gradient(120% 90% at 50% 0%, var(--board-bg-2) 0%, var(--board-bg) 60%, #5b3122 100%);
+  min-height:100vh; padding:10px 12px 28px;
+}
+/* the pill is position:fixed at the top, so the page reserves its band
+   PERMANENTLY rather than shifting when it appears — otherwise Dalej lands on
+   top of the title, and a padding that only applies while it shows makes the
+   whole card jump every time a word is finished */
+body{padding-top:62px}
+body.busy .lockable{pointer-events:none}
+/* phone-first but bounded, or the card stretches across a tablet (§6) */
+.wrap{max-width:560px; margin:0 auto}
+
+.title{
+  font-family:var(--font-display); font-weight:700; color:var(--chalk);
+  font-size:25px; line-height:1.15; text-align:center; margin:2px 0 9px;
+  text-shadow:0 1px 0 rgba(0,0,0,.25);
+}
+.bar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; margin:0 0 11px}
+.btn{
+  font-family:var(--font-body); font-size:15px; font-weight:600;
+  min-height:44px; padding:0 16px; border-radius:10px; cursor:pointer;
+  border:2px solid var(--board-frame-dark); background:var(--card-bg); color:var(--ink);
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+}
+.btn[hidden]{display:none}
+.btn:disabled{opacity:.45; cursor:default}
+.btn.icon{min-width:44px; padding:0 10px}
+.count{
+  font-family:var(--font-mono); font-size:13px; color:var(--chalk);
+  background:rgba(0,0,0,.22); border-radius:999px; padding:7px 12px; min-height:34px;
+  display:inline-flex; align-items:center;
+}
+
+/* the one control that appears mid-exercise sits at the TOP, where the phone
+   keyboard cannot cover it and scrolling cannot lose it (§4.8) */
+.pill{
+  position:fixed; left:50%; top:8px; transform:translateX(-50%); z-index:50;
+  background:var(--board-frame-dark); color:var(--chalk);
+  font-size:15px; font-weight:700; padding:10px 22px; border-radius:999px;
+  box-shadow:0 3px 12px rgba(0,0,0,.4); border:0; cursor:default;
+}
+.pill[hidden]{display:none}
+.pill.go{background:var(--pen-green); cursor:pointer; min-height:44px}
+
+.card{
+  background:var(--card-bg); border:2px solid var(--board-frame); border-radius:14px;
+  padding:16px 14px 18px; text-align:center;
+}
+.cue{
+  font-family:var(--font-display); font-size:30px; font-weight:700; line-height:1.2;
+  color:var(--board-frame-dark); margin:0 0 4px; overflow-wrap:anywhere;
+}
+.cue.long{font-size:23px}
+.cue.xlong{font-size:19px}
+.cue-note{font-size:13px; color:var(--ink-soft); margin:0 0 14px}
+
+.hint{
+  font-family:var(--font-mono); font-size:19px; letter-spacing:.16em;
+  color:var(--ink-soft); min-height:26px; margin:0 0 8px;
+}
+#answer{
+  font-family:var(--font-mono); font-size:20px; font-weight:600; text-align:center;
+  width:100%; max-width:320px; min-height:52px; padding:6px 10px;
+  border:2px solid var(--board-frame); border-radius:10px; background:#fff; color:var(--ink);
+}
+#answer:focus{outline:3px solid rgba(209,72,58,.35); outline-offset:1px}
+/* neutral while what is typed can still become the word, red the moment it
+   cannot — an empty box is never red (§4.8) */
+#answer.bad{border-color:var(--red-pen); background:#fbe9e6; color:#8d2f24}
+#answer.good{border-color:var(--pen-green); background:#e9f4ec; color:#2f5f3c}
+/* once solved, the word and the sentence are tappable to hear again. Replaying
+   gives nothing away — the answer is already on screen (§4.2) */
+#answer.good{cursor:pointer}
+
+/* the sentence is a real <button>: it reads itself when pressed, so it has to
+   LOOK pressable rather than rely on a glyph beside it */
+.sentence{
+  display:block; width:100%; margin:16px 0 0; padding:13px 12px;
+  font-family:var(--font-body); font-size:17px; line-height:1.5; text-align:center;
+  color:var(--ink); background:#fff; border:2px solid var(--board-frame);
+  border-radius:11px; box-shadow:0 3px 0 var(--board-frame-dark);
+  cursor:pointer; -webkit-appearance:none; appearance:none;
+}
+.sentence:active{transform:translateY(2px); box-shadow:0 1px 0 var(--board-frame-dark)}
+.sentence[hidden]{display:none}
+.sentence .key{color:var(--pen-green); font-weight:700}
+.sentence .pl{display:block; margin-top:6px; font-size:14px; color:var(--ink-soft)}
+
+.status{text-align:center; color:var(--chalk); font-size:13px; min-height:19px; margin:12px 0 0; opacity:.9}
+.done-card{
+  text-align:center; margin:14px 0 0; color:var(--chalk);
+  font-family:var(--font-display); font-size:25px; font-weight:700; line-height:1.35;
+}
+.done-card[hidden]{display:none}
+.done-card small{display:block; font-family:var(--font-body); font-size:14px; font-weight:400; opacity:.85; margin-top:6px}
+noscript p{background:var(--card-bg); border-radius:10px; padding:12px; margin:12px 0; font-size:14px; text-align:center}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<h1 class="title">Napisz słowo · 1A</h1>
+
+<noscript><p>Ta strona potrzebuje JavaScriptu. Bez niego zobaczysz tylko tytuł i to zdanie —
+otwórz plik w przeglądarce z włączonym JavaScriptem.</p></noscript>
+
+<!-- every control sits ABOVE the answer box: the phone keyboard covers
+     everything below it, and there is no submit button (§1) -->
+<div class="bar lockable">
+  <button class="btn" id="skip" type="button">Pomiń</button>
+  <button class="btn" id="help" type="button">Pomoc</button>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="card lockable" id="card">
+  <p class="cue" id="cue"></p>
+  <p class="cue-note">po angielsku</p>
+  <p class="hint" id="hint"></p>
+  <input id="answer" type="text" autocomplete="off" autocapitalize="off"
+         autocorrect="off" spellcheck="false" inputmode="text" aria-label="Odpowiedź">
+  <button class="sentence" id="sentence" type="button" hidden></button>
+</div>
+
+<p class="status" id="status"></p>
+<p class="done-card" id="done" hidden></p>
+
+</div>
+
+<button class="pill" id="pill" hidden type="button">Czytam…</button>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   DATA — High Note 3, Unit 1A.
+
+   The first five of the unit's own list, with the part-of-speech tags and
+   everything else in brackets stripped from both sides, at the teacher's word.
+   `ballroom dancing` is two words, which is what the non-breaking space in the
+   Pomoc hint is for.
+
+   Each `en` gets a sentence built around the words it most often keeps company
+   with, because a word learnt without its collocates is a word the student
+   cannot use: `matching` accessories, a `positive` attitude `towards`, `of
+   average height`, the `grand` ballroom, `take` ballroom dancing `lessons`.
+   The collocates are what the sentence is FOR — it is not there to pad the
+   word out. (`take lessons` is itself further down this unit's list.)
+   ============================================================ */
+var WORDS = [
+  {en:"accessories", pl:"dodatki",
+   sentence:"Her dress was plain, but her matching accessories made it look expensive.",
+   plSentence:"Jej sukienka była skromna, ale pasujące dodatki sprawiły, że wyglądała drogo."},
+
+  {en:"attitude", pl:"nastawienie, stosunek do czegoś",
+   sentence:"He has a really positive attitude towards hard work.",
+   plSentence:"Ma naprawdę pozytywne nastawienie do ciężkiej pracy."},
+
+  {en:"average", pl:"przeciętny",
+   sentence:"He is of average height, with short dark hair.",
+   plSentence:"Jest przeciętnego wzrostu, ma krótkie ciemne włosy."},
+
+  {en:"ballroom", pl:"sala balowa",
+   sentence:"The wedding was held in the grand ballroom of an old hotel.",
+   plSentence:"Wesele odbyło się w wielkiej sali balowej starego hotelu."},
+
+  {en:"ballroom dancing", pl:"taniec towarzyski",
+   sentence:"My grandparents take ballroom dancing lessons every Tuesday.",
+   plSentence:"Moi dziadkowie chodzą na lekcje tańca towarzyskiego w każdy wtorek."},
+
+  {en:"clothing", pl:"strój, ubiór, odzież",
+   sentence:"Take some warm clothing — the evenings get cold here.",
+   plSentence:"Weź jakieś ciepłe ubrania — wieczory bywają tu zimne."},
+
+  {en:"cost a fortune", pl:"kosztować majątek",
+   sentence:"Her prom dress must have cost a fortune.",
+   plSentence:"Jej sukienka na bal maturalny musiała kosztować majątek."},
+
+  {en:"dance floor", pl:"parkiet",
+   sentence:"By midnight the dance floor was completely packed.",
+   plSentence:"O północy parkiet był całkowicie zapełniony."},
+
+  {en:"dancing show", pl:"pokaz tańca",
+   sentence:"We watched a dancing show on television last night.",
+   plSentence:"Wczoraj wieczorem oglądaliśmy pokaz tańca w telewizji."},
+
+  {en:"date", pl:"tu: chłopak/dziewczyna/partner/partnerka",
+   sentence:"She arrived at the prom with her date.",
+   plSentence:"Przyszła na bal maturalny ze swoim partnerem."},
+
+  {en:"dress casually", pl:"ubierać się nieoficjalnie, zwyczajnie",
+   sentence:"You can dress casually — it's not a formal party.",
+   plSentence:"Możesz ubrać się zwyczajnie — to nie jest oficjalne przyjęcie."},
+
+  {en:"dress up as sb", pl:"przebrać się za kogoś", mark:"dress up as", alt:["dress up as somebody", "dress up as someone"],
+   sentence:"For the party I'm going to dress up as a pirate.",
+   plSentence:"Na imprezę przebiorę się za pirata."},
+
+  {en:"end-of-year celebration", pl:"uroczystość na koniec roku szkolnego", alt:["end of year celebration"],
+   sentence:"The school is planning a big end-of-year celebration.",
+   plSentence:"Szkoła planuje wielką uroczystość na koniec roku szkolnego."},
+
+  {en:"funeral", pl:"pogrzeb",
+   sentence:"People usually wear black to a funeral.",
+   plSentence:"Na pogrzeb ludzie zwykle ubierają się na czarno."},
+
+  {en:"get changed", pl:"przebrać się",
+   sentence:"Give me five minutes to get changed.",
+   plSentence:"Daj mi pięć minut, żeby się przebrać."},
+
+  {en:"get dressed", pl:"ubrać się",
+   sentence:"I need to get dressed before the guests arrive.",
+   plSentence:"Muszę się ubrać, zanim przyjdą goście."},
+
+  {en:"get dressed up", pl:"ubrać się elegancko, wystroić się",
+   sentence:"You don't need to get dressed up — it's just a family dinner.",
+   plSentence:"Nie musisz się stroić — to tylko rodzinna kolacja."},
+
+  {en:"get going", pl:"zbierać się do wyjścia",
+   sentence:"It's late — we should get going.",
+   plSentence:"Jest późno — powinniśmy się zbierać."},
+
+  {en:"get undressed", pl:"rozbierać się",
+   sentence:"The children get undressed and go straight to bed.",
+   plSentence:"Dzieci rozbierają się i idą prosto do łóżka."},
+
+  {en:"gossip", pl:"plotkować",
+   sentence:"They love to gossip about their neighbours.",
+   plSentence:"Uwielbiają plotkować o sąsiadach."},
+
+  {en:"influence", pl:"wpływ",
+   sentence:"Social media has a strong influence on what teenagers wear.",
+   plSentence:"Media społecznościowe mają duży wpływ na to, co noszą nastolatki."},
+
+  {en:"it's a shame", pl:"jaka szkoda", alt:["its a shame"],
+   sentence:"It's a shame you can't come to the party.",
+   plSentence:"Szkoda, że nie możesz przyjść na imprezę."},
+
+  {en:"low-income", pl:"o niskich dochodach", alt:["low income"],
+   sentence:"The school helps students from low-income families.",
+   plSentence:"Szkoła pomaga uczniom z rodzin o niskich dochodach."},
+
+  {en:"outfit", pl:"strój, ubiór",
+   sentence:"She spent hours choosing the perfect outfit.",
+   plSentence:"Spędziła godziny, wybierając idealny strój."},
+
+  {en:"overdressed", pl:"ubrany zbyt strojnie do okazji",
+   sentence:"Everyone was in jeans, so I felt completely overdressed.",
+   plSentence:"Wszyscy byli w dżinsach, więc czułem się zdecydowanie zbyt strojnie ubrany."},
+
+  {en:"pressure", pl:"presja",
+   sentence:"There is a lot of pressure to wear expensive clothes.",
+   plSentence:"Jest duża presja, żeby nosić drogie ubrania."},
+
+  {en:"prom night", pl:"bal maturalny",
+   sentence:"Prom night is the biggest event of the school year.",
+   plSentence:"Bal maturalny to największe wydarzenie roku szkolnego."},
+
+  {en:"regret", pl:"żałować",
+   sentence:"You will regret it if you don't go.",
+   plSentence:"Pożałujesz, jeśli nie pójdziesz."},
+
+  {en:"save for sth", pl:"oszczędzać na coś", mark:"saving for", alt:["save for something"],
+   sentence:"She is saving for a new laptop.",
+   plSentence:"Oszczędza na nowego laptopa."},
+
+  {en:"see sb", pl:"tu: spotykać się z kimś", mark:"seeing", alt:["see somebody", "see someone"],
+   sentence:"He has been seeing her since June.",
+   plSentence:"Spotyka się z nią od czerwca."},
+
+  {en:"smart/formal clothes", pl:"eleganckie/oficjalne ubrania", mark:"smart clothes", alt:["smart clothes", "formal clothes", "smart and formal clothes"],
+   sentence:"You have to wear smart clothes to the interview.",
+   plSentence:"Na rozmowę kwalifikacyjną trzeba założyć eleganckie ubrania."},
+
+  {en:"suit", pl:"garnitur",
+   sentence:"He bought a dark blue suit for the wedding.",
+   plSentence:"Kupił granatowy garnitur na wesele."},
+
+  {en:"take lessons", pl:"brać lekcje, uczestniczyć w zajęciach",
+   sentence:"I want to take lessons before the prom.",
+   plSentence:"Chcę brać lekcje przed balem maturalnym."},
+
+  {en:"underdressed", pl:"nieodpowiednio ubrany",
+   sentence:"Everyone else wore suits, so I felt underdressed.",
+   plSentence:"Wszyscy inni mieli garnitury, więc czułem się nieodpowiednio ubrany."},
+
+  {en:"well-dressed", pl:"dobrze ubrany", alt:["well dressed"],
+   sentence:"He is always well-dressed, even at weekends.",
+   plSentence:"Zawsze jest dobrze ubrany, nawet w weekendy."},
+
+  {en:"What a nightmare!", pl:"Co za koszmar!",
+   sentence:"I lost my ticket and missed the train. What a nightmare!",
+   plSentence:"Zgubiłem bilet i spóźniłem się na pociąg. Co za koszmar!"}
+];
+
+/* how a written form should be SAID, where the two differ (§4.6) */
+var SPOKEN = {};
+function spoken(t){ return SPOKEN[t] || t; }
+
+/* ============================================================
+   VOICES (§5.4) — en-GB first, English only, never the whole list
+   ============================================================ */
+var maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  var all=[];
+  try{ all = (window.speechSynthesis && speechSynthesis.getVoices()) || []; }catch(e){ all=[]; }
+  var gb = all.filter(function(v){ return /^en[-_]GB/i.test(v.lang||''); });
+  var en = all.filter(function(v){ return /^en/i.test(v.lang||''); });
+  var voices = gb.length ? gb : en;
+  englishVoice = voices[0] || null;
+  maleVoice = voices.filter(function(v){ return /male/i.test(v.name) && !/female/i.test(v.name); })[0] || null;
+  femaleVoice = voices.filter(function(v){ return /female/i.test(v.name); })[0] || null;
+}
+refreshVoices();
+try{ if(window.speechSynthesis) speechSynthesis.onvoiceschanged = refreshVoices; }catch(e){}
+
+var soundOn = true;    // no mute button, at the teacher's request: the reading
+                       // IS the exercise here, so there is nothing to switch off
+var speakCount = 0;
+
+/* onDone fires exactly once in every case — sound off, no engine, a throw, and
+   the Android builds where `onend` never arrives (§4.7). The board waits on it. */
+function speak(text, onDone){
+  var done = false;
+  function fire(){ if(done) return; done = true; try{ onDone && onDone(); }catch(e){} }
+  if(!soundOn || !text){ setTimeout(fire, 0); return; }
+  var synth = null;
+  try{ synth = window.speechSynthesis || null; }catch(e){ synth = null; }
+  if(!synth || typeof SpeechSynthesisUtterance === 'undefined'){ setTimeout(fire, 0); return; }
+  try{ synth.cancel(); }catch(e){}
+  var u;
+  try{ u = new SpeechSynthesisUtterance(spoken(text)); }catch(e){ setTimeout(fire, 0); return; }
+  u.lang = 'en-GB';
+  speakCount++;
+  var wantMale = (speakCount % 2) === 1;
+  var pick = wantMale ? (maleVoice || englishVoice) : (femaleVoice || maleVoice || englishVoice);
+  try{ if(pick) u.voice = pick; }catch(e){}      /* throws on Android when the list is rebuilt */
+  if(!maleVoice || !femaleVoice) u.pitch = wantMale ? 0.8 : 1.2;
+  u.onend = fire;
+  u.onerror = fire;
+  setTimeout(fire, Math.min(8000, 1200 + String(text).length * 90));
+  try{ synth.speak(u); }catch(e){ fire(); }
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var queue = [];        // what is still owed, current word at the front
+var doneCount = 0;
+var helpUsed = 0;
+var shown = 0;         // letters of the current word given away
+var busy = false;      // a reading is in progress — everything is locked
+var awaiting = false;  // the reading has ended and Dalej is up: the board is
+                       // open again ONLY so the word and sentence can be
+                       // replayed; the input is readOnly and the word is solved
+
+var cardEl = document.getElementById('card');
+var cueEl = document.getElementById('cue');
+var hintEl = document.getElementById('hint');
+var answerEl = document.getElementById('answer');
+var sentenceEl = document.getElementById('sentence');
+var pill = document.getElementById('pill');
+var statusEl = document.getElementById('status');
+var doneEl = document.getElementById('done');
+var countEl = document.getElementById('count');
+var skipBtn = document.getElementById('skip');
+var helpBtn = document.getElementById('help');
+
+function shuffle(a){
+  for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+function current(){ return queue[0] || null; }
+function norm(s){
+  /* trailing sentence punctuation is not part of the word being spelt, so
+     "What a nightmare" counts as well as "What a nightmare!" (§4.5) */
+  return String(s||'').trim().toLowerCase().replace(/\s+/g,' ').replace(/[.!?,;:]+$/,'');
+}
+/* every spelling that counts: the canonical form always does, `alt` holds the
+   extras — a hyphen written as a space, a `sb`/`sth` frame written out (§4.5) */
+function wants(w){ return [w.en].concat(w.alt || []).map(norm); }
+
+function deal(){
+  queue = shuffle(WORDS.slice());     // a fresh order every time it starts
+  doneCount = 0;
+  helpUsed = 0;
+  busy = false;                       // a fresh deal must clear it, or a reload lands frozen
+  awaiting = false;
+  document.body.classList.remove('busy');
+  pill.hidden = true;
+  doneEl.hidden = true;
+  statusEl.textContent = '';
+  showCurrent();
+}
+
+function showCurrent(){
+  var w = current();
+  if(!w){ finish(); return; }
+  shown = 0;                          // the count resets for each showing, so a
+  /* a run of slashed alternatives is one long "word" with nowhere to break, so
+     it would wrap mid-word (partner/partner|ka). A zero-width space after each
+     slash gives the line a place to break; written as the escape, never as an
+     invisible character in the source (§4.8) */
+  cueEl.textContent = w.pl.replace(/\//g, '/\u200b');
+  /* a four-word Polish cue at 30px swamps the card, so the long ones step down */
+  cueEl.className = 'cue' + (w.pl.length > 34 ? ' xlong' : (w.pl.length > 24 ? ' long' : ''));
+  hintEl.textContent = '';
+  sentenceEl.hidden = true;
+  sentenceEl.textContent = '';
+  answerEl.value = '';
+  answerEl.className = '';
+  answerEl.readOnly = false;
+  sentenceEl.disabled = true;   // nothing to read until the word is solved
+  paint();
+  try{ answerEl.focus(); }catch(e){}
+}
+
+function paint(){
+  countEl.textContent = doneCount + ' / ' + WORDS.length;
+  // nowhere to move the last word to, so Pomiń has nothing to do
+  skipBtn.disabled = busy || awaiting || queue.length < 2;
+  var w = current();
+  helpBtn.disabled = busy || awaiting || !w || shown >= w.en.length;
+}
+
+/* ============================================================
+   TYPING — accepted on `input`, never behind a submit button (§1)
+   ============================================================ */
+answerEl.addEventListener('input', function(){
+  if(busy || awaiting) return;
+  var w = current();
+  if(!w) return;
+  var typed = norm(answerEl.value);
+  var list = wants(w);
+  if(list.indexOf(typed) >= 0){ solved(w); return; }
+  /* neutral while it can still become ANY accepted spelling, red once it can
+     become none of them — an empty box is never red */
+  var open = !typed || list.some(function(x){ return x.indexOf(typed) === 0; });
+  answerEl.className = open ? '' : 'bad';
+});
+
+function solved(w){
+  answerEl.value = w.en;              // show the canonical spelling, not the typing
+  answerEl.className = 'good';
+  answerEl.readOnly = true;
+  hintEl.textContent = '';
+
+  /* the sentence appears and is read; the board is held for the whole run, and
+     the lock starts HERE rather than when the reading does — the gap between
+     the two is otherwise open for a tap to start something else (§4.6) */
+  hold();
+  renderSentence(w);
+  /* the word first, then the sentence, chained on `onDone` and never on a
+     delay, or the sentence talks over the word (§4.8) */
+  speak(w.en, function(){
+    speak(w.sentence, function(){ release(); });
+  });
+}
+
+/* the board is HELD while anything is read — every reading goes through these
+   two, including a replay, so there is one lock rather than two that can drift */
+function hold(){
+  busy = true;
+  awaiting = false;
+  document.body.classList.add('busy');
+  pill.hidden = false;
+  pill.className = 'pill';
+  pill.textContent = 'Czytam…';
+  paint();
+}
+function release(){
+  busy = false;
+  awaiting = true;
+  document.body.classList.remove('busy');   // so the word and sentence take taps
+  pill.className = 'pill go';
+  pill.textContent = 'Dalej →';
+  sentenceEl.disabled = false;   // now it can read itself back
+  paint();
+}
+
+/* tap the word, or the sentence, to hear it again. The answer is already on
+   screen, so replaying gives nothing away (§4.2) — and both go through hold()
+   so a second tap cannot cut the first off mid-word. */
+function replay(text){
+  if(busy || !awaiting) return;
+  hold();
+  speak(text, release);
+}
+answerEl.addEventListener('click', function(){
+  if(awaiting){ var w = current(); if(w) replay(w.en); }
+});
+sentenceEl.addEventListener('click', function(){
+  var w = current(); if(w) replay(w.sentence);
+});
+
+function renderSentence(w){
+  sentenceEl.textContent = '';
+  /* split on the key word so it can be marked without building a regex out of
+     content (§4.8) — a word with a hyphen is not a safe pattern */
+  /* `mark` is what the sentence actually says where that differs from the
+     headword — `see sb` appears as "seeing", `save for sth` as "saving for" */
+  var key = w.mark || w.en;
+  var lower = w.sentence.toLowerCase();
+  var at = lower.indexOf(key.toLowerCase());
+  if(at < 0){
+    sentenceEl.appendChild(document.createTextNode(w.sentence));
+  } else {
+    sentenceEl.appendChild(document.createTextNode(w.sentence.slice(0, at)));
+    var k = document.createElement('span');
+    k.className = 'key';
+    k.textContent = w.sentence.slice(at, at + key.length);
+    sentenceEl.appendChild(k);
+    sentenceEl.appendChild(document.createTextNode(w.sentence.slice(at + key.length)));
+  }
+  if(w.plSentence){
+    var pl = document.createElement('span');
+    pl.className = 'pl';
+    pl.textContent = w.plSentence;
+    sentenceEl.appendChild(pl);
+  }
+  sentenceEl.hidden = false;
+}
+
+/* Dalej releases the board and moves on. The focus call happens inside a REAL
+   TAP, which is what brings the phone keyboard back up — a focus fired from a
+   speech callback cannot be relied on to do it (§4.8). */
+pill.addEventListener('click', function(){
+  if(!pill.classList.contains('go')) return;
+  busy = false;
+  awaiting = false;
+  document.body.classList.remove('busy');
+  pill.hidden = true;
+  queue.shift();
+  doneCount++;
+  showCurrent();
+});
+
+/* ============================================================
+   POMIŃ / POMOC
+   ============================================================ */
+skipBtn.addEventListener('click', function(){
+  if(busy || awaiting || queue.length < 2) return;
+  queue.push(queue.shift());          // to the BACK, never dropped — it still has to be answered
+  showCurrent();
+});
+
+/* one more letter each press, left to right; nothing before the first press,
+   because the number of letters is itself a clue (§4.8) */
+helpBtn.addEventListener('click', function(){
+  if(busy || awaiting) return;
+  var w = current();
+  if(!w || shown >= w.en.length) return;
+  shown++;
+  helpUsed++;
+  var out = '';
+  for(var i=0;i<w.en.length;i++){
+    var ch = w.en.charAt(i);
+    /* a space inside the hint is NON-BREAKING, revealed or not: a plain space
+       in an inline run can be collapsed away, and the word boundary is exactly
+       what the hint is there to show (§4.8) */
+    out += (i < shown) ? ch : (ch === ' ' ? ' ' : '_');
+  }
+  hintEl.textContent = out;
+  paint();
+  try{ answerEl.focus(); }catch(e){}
+});
+
+function finish(){
+  cardEl.hidden = true;
+  statusEl.textContent = '';
+  doneEl.hidden = false;
+  doneEl.textContent = 'Brawo! 🎉';
+  var s = document.createElement('small');
+  s.textContent = helpUsed ? ('Pomoc: ' + helpUsed + ' ×') : 'Bez podpowiedzi!';
+  doneEl.appendChild(s);
+}
+
+deal();
+
+/* exposed for the automated checks only */
+window.__ex = {
+  words: function(){ return WORDS; },
+  queue: function(){ return queue; },
+  current: current,
+  isBusy: function(){ return busy; },
+  isAwaiting: function(){ return awaiting; },
+  replayWord: function(){ answerEl.click(); },
+  replaySentence: function(){ sentenceEl.click(); },
+  type: function(v){ answerEl.value = v; answerEl.dispatchEvent(new Event('input')); },
+  next: function(){ pill.click(); },
+  help: function(){ helpBtn.click(); },
+  skip: function(){ skipBtn.click(); },
+  deal: deal
+};
+})();
+</script>
+</body>
+</html>
