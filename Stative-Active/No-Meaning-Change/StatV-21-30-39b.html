@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StatV 21-30 — Stative / Non-stative</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --pen-green:#4f8f5e;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font-body); color:var(--ink);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--board-bg-2) 0%, var(--board-bg) 60%, #5b3122 100%);
+  min-height:100vh; padding:10px 12px 28px;
+}
+body.busy .lockable{pointer-events:none}
+
+/* phone-first, but bounded: above ~560px the board stops growing and centres,
+   or the two columns stretch to half a tablet each */
+.wrap{max-width:560px; margin:0 auto}
+
+.title{
+  font-family:var(--font-display); font-weight:700; color:var(--chalk);
+  font-size:26px; line-height:1.15; text-align:center; margin:2px 0 4px;
+  text-shadow:0 1px 0 rgba(0,0,0,.25);
+}
+
+/* ---------- top bar: controls live ABOVE the board (§1) ---------- */
+.bar{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  justify-content:center; margin:0 0 10px;
+}
+.btn{
+  font-family:var(--font-body); font-size:15px; font-weight:600;
+  min-height:44px; padding:0 16px; border-radius:10px; cursor:pointer;
+  border:2px solid var(--board-frame-dark); background:var(--card-bg); color:var(--ink);
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+}
+.btn[hidden]{display:none}
+.btn:disabled{opacity:.45; cursor:default}
+.btn.icon{min-width:44px; padding:0 10px}
+
+/* ---------- the "Czytam…" pill, fixed where scrolling cannot lose it ---------- */
+.pill{
+  position:fixed; left:50%; top:8px; transform:translateX(-50%);
+  background:var(--board-frame-dark); color:var(--chalk);
+  font-size:14px; font-weight:600; padding:9px 18px; border-radius:999px;
+  box-shadow:0 3px 10px rgba(0,0,0,.35); z-index:50;
+}
+.pill[hidden]{display:none}
+
+/* ---------- pool ---------- */
+.pool{
+  display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
+  background:rgba(0,0,0,.14); border-radius:12px; padding:10px 8px;
+  min-height:56px; margin:0 0 12px;
+}
+.pool:empty::after{
+  content:'—'; color:var(--chalk); opacity:.4; font-size:18px; line-height:36px;
+}
+
+/* ---------- the two columns ---------- */
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.col{
+  background:var(--card-bg); border:2px solid var(--board-frame);
+  border-radius:12px; padding:8px 7px 9px; min-width:0;
+}
+.col.armed{border-color:var(--red-pen); box-shadow:0 0 0 3px rgba(209,72,58,.22)}
+.col h2{
+  font-family:var(--font-display); font-size:19px; font-weight:700;
+  margin:0 0 8px; text-align:center; color:var(--board-frame-dark);
+  border-bottom:2px solid var(--card-line); padding-bottom:5px;
+  overflow-wrap:anywhere;
+}
+.slots{display:flex; flex-direction:column; gap:6px}
+.slot{
+  min-height:44px; border:2px dashed var(--card-line); border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ---------- tiles ---------- */
+.tile{
+  font-family:var(--font-body); font-size:16px; font-weight:600;
+  min-height:44px; padding:0 13px; border-radius:9px; cursor:pointer;
+  border:2px solid var(--board-frame); background:var(--card-bg); color:var(--ink);
+  display:inline-flex; align-items:center; justify-content:center;
+  touch-action:none; user-select:none; overflow-wrap:anywhere; text-align:center;
+}
+.col .tile{width:100%; font-size:15px; padding:0 6px}
+.tile.picked{
+  border-color:var(--red-pen); background:#fdeeeb; transform:scale(1.06);
+}
+/* the ONLY colour feedback in the exercise, and only Pomoc sets it */
+.tile.ok{
+  border-color:var(--pen-green); background:#e9f4ec; color:#2f5f3c; cursor:default;
+}
+.tile.bad{ border-color:var(--red-pen); background:#fbe9e6; color:#8d2f24; }
+.tile .prep{color:var(--pen-green); font-weight:700; margin-left:5px}
+.tile.dragging{opacity:.35}
+.ghost{
+  position:fixed; z-index:60; pointer-events:none; opacity:.92;
+  box-shadow:0 6px 16px rgba(0,0,0,.35);
+}
+@keyframes landed{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
+.tile.landed{animation:landed .32s ease-out}
+
+.status{
+  text-align:center; color:var(--chalk); font-size:13px; min-height:19px;
+  margin:11px 0 0; opacity:.9;
+}
+.done{
+  text-align:center; margin:14px 0 0; color:var(--chalk);
+  font-family:var(--font-display); font-size:25px; font-weight:700;
+}
+.done[hidden]{display:none}
+noscript p{
+  background:var(--card-bg); border-radius:10px; padding:12px; margin:12px 0;
+  font-size:14px; text-align:center;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<h1 class="title">Podziel czasowniki · 21–30</h1>
+<noscript><p>Ta strona potrzebuje JavaScriptu. Bez niego zobaczysz tylko tytuł i to zdanie —
+otwórz plik w przeglądarce z włączonym JavaScriptem.</p></noscript>
+
+<div class="bar lockable">
+  <button class="btn" id="help" type="button">Pomoc</button>
+  <button class="btn icon" id="sound" type="button" aria-label="Dźwięk"></button>
+  <button class="btn" id="again" type="button">Jeszcze raz</button>
+</div>
+
+<div class="cols lockable">
+  <section class="col" id="colS" data-side="S">
+    <h2>Stative</h2>
+    <div class="slots" id="slotsS"></div>
+  </section>
+  <section class="col" id="colN" data-side="N">
+    <h2>Non-stative</h2>
+    <div class="slots" id="slotsN"></div>
+  </section>
+</div>
+
+<div class="pool lockable" id="pool"></div>
+
+<p class="status" id="status"></p>
+<p class="done" id="done" hidden>Brawo! 🎉</p>
+
+</div>
+
+<div class="pill" id="pill" hidden>Czytam…</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   DATA
+   The ten most frequent stative verbs, and ten plainly dynamic
+   verbs to mix them with. `prep` is the fixed pattern the verb
+   takes; it is revealed only once Pomoc confirms the tile.
+   ============================================================ */
+var STATIVE = [
+  {w:'expect'},
+  {w:'remain'},
+  {w:'require'},
+  {w:'contain'},
+  {w:'agree', prep:'with'},
+  {w:'hope', prep:'for'},
+  {w:'sound', prep:'like'},
+  {w:'belong', prep:'to', fixed:true},
+  {w:'prefer', prep:'to'},
+  {w:'depend', prep:'on'}
+];
+var DYNAMIC = ['build','carry','climb','drive','catch','wash','paint','push','pull','ride'];
+
+/* how a written form should be SAID, where the two differ (§4.6) */
+var SPOKEN = {};
+function spoken(w){ return SPOKEN[w] || w; }
+
+/* ============================================================
+   VOICES  (§5.4 — en-GB first, English only, never the whole list)
+   ============================================================ */
+var maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  var all=[];
+  try{ all = (window.speechSynthesis && speechSynthesis.getVoices()) || []; }catch(e){ all=[]; }
+  var gb = all.filter(function(v){ return /^en[-_]GB/i.test(v.lang||''); });
+  var en = all.filter(function(v){ return /^en/i.test(v.lang||''); });
+  var voices = gb.length ? gb : en;
+  englishVoice = voices[0] || null;
+  maleVoice = voices.filter(function(v){ return /male/i.test(v.name) && !/female/i.test(v.name); })[0] || null;
+  femaleVoice = voices.filter(function(v){ return /female/i.test(v.name); })[0] || null;
+}
+refreshVoices();
+try{ if(window.speechSynthesis) speechSynthesis.onvoiceschanged = refreshVoices; }catch(e){}
+
+var soundOn = true;
+var speakCount = 0;
+
+/* onDone fires EXACTLY once, in every case: sound off, no engine, a throw,
+   and the Android builds where `onend` never arrives (§4.7). Anything that
+   waits on this callback deadlocks without it. */
+function speak(text, onDone){
+  var done = false;
+  function fire(){ if(done) return; done = true; try{ onDone && onDone(); }catch(e){} }
+  if(!soundOn || !text){ setTimeout(fire, 0); return; }
+  var synth = null;
+  try{ synth = window.speechSynthesis || null; }catch(e){ synth = null; }
+  if(!synth || typeof SpeechSynthesisUtterance === 'undefined'){ setTimeout(fire, 0); return; }
+  try{ synth.cancel(); }catch(e){}
+
+  var u;
+  try{ u = new SpeechSynthesisUtterance(text); }catch(e){ setTimeout(fire, 0); return; }
+  u.lang = 'en-GB';
+  speakCount++;
+  var wantMale = (speakCount % 2) === 1;
+  var pick = wantMale ? (maleVoice || englishVoice) : (femaleVoice || maleVoice || englishVoice);
+  /* assigning .voice throws when the list was rebuilt underneath us (§4.9) —
+     losing the chosen voice is survivable, losing the reading is not */
+  try{ if(pick) u.voice = pick; }catch(e){}
+  if(!maleVoice || !femaleVoice) u.pitch = wantMale ? 0.8 : 1.2;
+  u.onend = fire;
+  u.onerror = fire;
+  setTimeout(fire, Math.min(8000, 1200 + String(text).length * 90));
+  try{ synth.speak(u); }catch(e){ fire(); }
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+var EMPTY_SLOTS = 1;         // one row kept free at the foot of each column while tiles remain
+var DRAG_THRESHOLD = 8;
+
+var tiles = [];              // {id, word, prep, stative, place:'pool'|'S'|'N', ok, shown}
+var picked = null;           // id of the selected tile
+var busy = false;
+var helped = false;
+
+var pool = document.getElementById('pool');
+var slots = { S: document.getElementById('slotsS'), N: document.getElementById('slotsN') };
+var cols  = { S: document.getElementById('colS'),  N: document.getElementById('colN') };
+var pill = document.getElementById('pill');
+var statusEl = document.getElementById('status');
+var doneEl = document.getElementById('done');
+var helpBtn = document.getElementById('help');
+var soundBtn = document.getElementById('sound');
+var againBtn = document.getElementById('again');
+
+function shuffle(a){
+  for(var i=a.length-1; i>0; i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function deal(){
+  var id = 0;
+  tiles = [];
+  STATIVE.forEach(function(v){
+    tiles.push({id:id++, word:v.w, prep:v.prep||'', fixed:!!v.fixed, stative:true,
+                place:'pool', ok:false, bad:false, shown:false});
+  });
+  DYNAMIC.forEach(function(w){
+    tiles.push({id:id++, word:w, prep:'', fixed:false, stative:false,
+                place:'pool', ok:false, bad:false, shown:false});
+  });
+  shuffle(tiles);                 // a fresh order on every load
+  picked = null;
+  busy = false;                   // a fresh deal must clear it, or a reload lands frozen
+  helped = false;
+  document.body.classList.remove('busy');
+  pill.hidden = true;
+  doneEl.hidden = true;
+  statusEl.textContent = '';
+  render();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function tileEl(t){
+  var el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'tile' + (t.ok ? ' ok' : '') + (t.bad ? ' bad' : '') +
+                 (picked === t.id ? ' picked' : '');
+  el.dataset.id = String(t.id);
+  el.appendChild(document.createTextNode(t.word));
+  if(t.prep && t.shown){
+    var s = document.createElement('span');
+    s.className = 'prep';
+    /* bare only where the verb cannot stand without it — belong to, consist of;
+       anything the verb is stative without is bracketed (§4.10) */
+    s.textContent = t.fixed ? t.prep : '(' + t.prep + ')';
+    el.appendChild(s);
+  }
+  return el;
+}
+
+function render(){
+  pool.textContent = '';
+  tiles.filter(function(t){ return t.place === 'pool'; })
+       .forEach(function(t){ pool.appendChild(tileEl(t)); });
+
+  ['S','N'].forEach(function(side){
+    var box = slots[side];
+    box.textContent = '';
+    tiles.filter(function(t){ return t.place === side; })
+         .forEach(function(t){
+           var slot = document.createElement('div');
+           slot.className = 'slot';
+           slot.style.border = 'none';
+           slot.appendChild(tileEl(t));
+           box.appendChild(slot);
+         });
+    /* the columns GROW: while anything is still unplaced, ONE empty row
+       stays open at the foot. One rather than ten also keeps the 10/10 split
+       from being readable off the board. */
+    var left = tiles.some(function(t){ return t.place === 'pool'; });
+    if(left){
+      for(var i=0; i<EMPTY_SLOTS; i++){
+        var s = document.createElement('div');
+        s.className = 'slot';
+        box.appendChild(s);
+      }
+    }
+  });
+
+  helpBtn.disabled = busy || !tiles.some(function(t){ return t.place !== 'pool' && !t.ok && !t.bad; });
+  soundBtn.innerHTML = soundOn ? speakerSvg() : mutedSvg();
+}
+
+function speakerSvg(){
+  return '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/>' +
+    '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>';
+}
+function mutedSvg(){
+  return '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/>' +
+    '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 9l5 6M21 9l-5 6"/></svg>';
+}
+
+/* ============================================================
+   MOVING TILES  —  no correctness feedback here, by design
+   ============================================================ */
+function byId(id){
+  for(var i=0;i<tiles.length;i++) if(tiles[i].id === id) return tiles[i];
+  return null;
+}
+
+function place(id, side){
+  var t = byId(id);
+  if(!t || t.ok) return;
+  t.bad = false;                  // moving it clears the mark; Pomoc decides again
+  t.place = side;
+  picked = null;
+  render();
+  flash(id);
+  checkDone();
+}
+
+function toPool(id){
+  var t = byId(id);
+  if(!t || t.ok) return;          // a confirmed tile is locked where it stands
+  t.bad = false;
+  t.place = 'pool';
+  picked = null;
+  render();
+}
+
+function flash(id){
+  var el = document.querySelector('.tile[data-id="' + id + '"]');
+  if(el){ el.classList.add('landed'); setTimeout(function(){ el.classList.remove('landed'); }, 340); }
+}
+
+function tapTile(id){
+  var t = byId(id);
+  if(!t) return;
+  if(t.ok){                        // already confirmed: re-hearing it gives nothing away
+    if(t.prep) read([t]);
+    return;
+  }
+  if(t.place !== 'pool'){ toPool(id); return; }
+  picked = (picked === t.id) ? null : t.id;   // tapping it again clears the selection
+  render();
+}
+
+function tapColumn(side){
+  if(picked === null) return;
+  place(picked, side);
+}
+
+/* ============================================================
+   POMOC  —  the one place correctness is ever shown
+   ============================================================ */
+function onHelp(){
+  if(busy) return;
+  var placedWrong = [], newly = [];
+  tiles.forEach(function(t){
+    if(t.place === 'pool' || t.ok) return;
+    var want = t.stative ? 'S' : 'N';
+    if(t.place === want){ t.ok = true; t.bad = false; newly.push(t); }
+    else { t.bad = true; placedWrong.push(t); }
+  });
+  helped = true;
+  picked = null;
+  render();
+
+  if(!newly.length){
+    /* the red tiles now say this themselves; a line is only wanted when
+       there is nothing on the board at all */
+    statusEl.textContent = placedWrong.length ? '' : 'Najpierw ułóż kilka czasowników.';
+    return;
+  }
+  statusEl.textContent = '';
+  /* only the stative verbs that carry a pattern get it revealed and read */
+  var toRead = newly.filter(function(t){ return t.prep; });
+  if(toRead.length) read(toRead); else checkDone();
+}
+
+/* Reveal each pattern and read it, ONE AT A TIME, chained on onDone so the
+   readings cannot talk over each other. The board is held for the whole run. */
+function read(list){
+  busy = true;
+  document.body.classList.add('busy');
+  pill.hidden = false;
+  render();
+  var i = 0;
+  (function next(){
+    if(i >= list.length){
+      busy = false;
+      document.body.classList.remove('busy');
+      pill.hidden = true;
+      render();
+      checkDone();
+      return;
+    }
+    var t = list[i++];
+    t.shown = true;
+    render();
+    flash(t.id);
+    speak(spoken(t.word) + ' ' + t.prep, next);
+  })();
+}
+
+function checkDone(){
+  var all = tiles.every(function(t){ return t.ok; });
+  doneEl.hidden = !all;
+  if(all){ statusEl.textContent = ''; }
+}
+
+/* ============================================================
+   GESTURES  —  tap is the route the instructions lead with,
+   drag is kept alongside it (§4.2). One handler serves both.
+   ============================================================ */
+var pressed = false, moved = false, startX = 0, startY = 0, dragId = null, ghost = null;
+var lastGesture = 0;   // when a pointer gesture last handled a tile, so `click` does not repeat it
+
+function dropSideAt(x, y){
+  var el = document.elementFromPoint(x, y);
+  while(el){
+    if(el.dataset && el.dataset.side) return el.dataset.side;
+    el = el.parentElement;
+  }
+  return null;
+}
+function clearGhost(){
+  if(ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+  ghost = null;
+  cols.S.classList.remove('armed');
+  cols.N.classList.remove('armed');
+  var d = document.querySelector('.tile.dragging');
+  if(d) d.classList.remove('dragging');
+}
+
+document.addEventListener('pointerdown', function(e){
+  if(busy) return;
+  var el = e.target.closest ? e.target.closest('.tile') : null;
+  if(!el) return;
+  /* `pressed` matters: without it a pointermove with startX/startY still at 0
+     passes the threshold and drags whatever tile it crosses (§4.6) */
+  pressed = true; moved = false;
+  startX = e.clientX; startY = e.clientY;
+  dragId = parseInt(el.dataset.id, 10);
+});
+
+document.addEventListener('pointermove', function(e){
+  if(busy || !pressed || dragId === null) return;
+  if(!moved){
+    if(Math.abs(e.clientX - startX) < DRAG_THRESHOLD &&
+       Math.abs(e.clientY - startY) < DRAG_THRESHOLD) return;
+    var t = byId(dragId);
+    if(!t || t.ok){ pressed = false; return; }
+    moved = true;
+    var src = document.querySelector('.tile[data-id="' + dragId + '"]');
+    if(src){
+      var r = src.getBoundingClientRect();
+      ghost = src.cloneNode(true);
+      ghost.className = 'tile ghost';
+      ghost.style.width = r.width + 'px';
+      ghost.style.height = r.height + 'px';
+      document.body.appendChild(ghost);
+      src.classList.add('dragging');
+    }
+  }
+  if(ghost){
+    ghost.style.left = (e.clientX - ghost.offsetWidth / 2) + 'px';
+    ghost.style.top  = (e.clientY - ghost.offsetHeight / 2) + 'px';
+  }
+  var side = dropSideAt(e.clientX, e.clientY);
+  cols.S.classList.toggle('armed', side === 'S');
+  cols.N.classList.toggle('armed', side === 'N');
+});
+
+function endPointer(e){
+  if(!pressed){ clearGhost(); return; }
+  pressed = false;
+  lastGesture = Date.now();
+  var id = dragId; dragId = null;
+  if(busy){ clearGhost(); return; }
+  if(!moved){ clearGhost(); if(id !== null) tapTile(id); return; }
+  var side = dropSideAt(e.clientX, e.clientY);
+  clearGhost();
+  if(side !== null && id !== null) place(id, side);
+  else render();
+}
+document.addEventListener('pointerup', endPointer);
+
+/* The tiles are real buttons, so they must answer a keyboard Enter or Space too —
+   neither of which fires a pointer event. The timestamp keeps the click that
+   FOLLOWS a pointer tap from moving the tile a second time. */
+document.addEventListener('click', function(e){
+  if(busy) return;
+  var el = e.target.closest ? e.target.closest('.tile') : null;
+  if(!el) return;
+  if(Date.now() - lastGesture < 400) return;
+  tapTile(parseInt(el.dataset.id, 10));
+});
+document.addEventListener('pointercancel', function(){ pressed = false; dragId = null; clearGhost(); });
+
+/* a tap anywhere in a column places the selected tile */
+['S','N'].forEach(function(side){
+  cols[side].addEventListener('click', function(e){
+    if(busy) return;
+    if(e.target.closest && e.target.closest('.tile')) return;  // handled by the tile itself
+    tapColumn(side);
+  });
+});
+
+helpBtn.addEventListener('click', onHelp);
+againBtn.addEventListener('click', function(){ if(!busy) deal(); });
+soundBtn.addEventListener('click', function(){
+  if(busy) return;
+  soundOn = !soundOn;
+  render();
+});
+
+deal();
+
+/* exposed for the automated checks only */
+window.__ex = {
+  tiles: function(){ return tiles; },
+  isBusy: function(){ return busy; },
+  place: place,
+  help: onHelp,
+  deal: deal
+};
+})();
+</script>
+</body>
+</html>
