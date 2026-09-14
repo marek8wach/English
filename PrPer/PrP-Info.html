@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Present Perfect — ściąga</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --pen-green:#4f8f5e; --pen-blue:#2f6f9f;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:0 14px 48px; font-family:var(--font-body); color:var(--chalk);
+  background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2)); background-attachment:fixed;
+  min-height:100vh; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:560px; margin:0 auto}        /* phone-first is not unbounded (§6) */
+
+.title{font-family:var(--font-display); font-size:30px; font-weight:700; text-align:center;
+  margin:16px 0 2px; line-height:1.1}
+.sub{text-align:center; font-size:13px; color:#e7d6bf; margin:0 0 12px}
+
+/* ---- the bar stays reachable however far down the page you are ---- */
+.bar{position:sticky; top:0; z-index:6; display:flex; gap:8px; justify-content:center;
+  padding:8px 0 10px; margin:0 -14px 12px; padding-left:14px; padding-right:14px;
+  background:linear-gradient(180deg,rgba(107,58,40,.98) 74%,rgba(107,58,40,0))}
+.btn{font-family:var(--font-body); font-size:14px; font-weight:700; min-height:44px;
+  padding:8px 14px; border-radius:10px; border:2px solid var(--board-frame-dark);
+  background:var(--card-bg); color:var(--ink); cursor:pointer;
+  box-shadow:0 2px 0 var(--board-frame-dark)}
+.btn:active{transform:translateY(2px); box-shadow:none}
+
+/* ---- the colour key the whole page obeys ---- */
+.key{background:var(--card-bg); color:var(--ink); border:2px solid var(--board-frame);
+  border-radius:12px; padding:10px 12px; margin:0 0 14px; font-size:13px; line-height:2}
+.key b{font-family:var(--font-mono)}
+.plkey b.plt{font-family:var(--font-body)}   /* the pills are labels, not code */
+
+/* ---- a section ---- */
+details{background:var(--card-bg); color:var(--ink); border:2px solid var(--board-frame);
+  border-radius:12px; margin:0 0 10px; overflow:hidden;
+  /* the bar is sticky, so a section jumped to would otherwise open with its
+     own heading hidden underneath it */
+  scroll-margin-top:64px}
+details > summary{
+  font-family:var(--font-display); font-size:20px; font-weight:700; line-height:1.2;
+  min-height:52px; padding:13px 40px 13px 14px; cursor:pointer; position:relative;
+  background:#f3ece0; color:var(--board-frame-dark); list-style:none;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'▸'; position:absolute; right:14px; top:50%; margin-top:-11px;
+  font-size:20px; color:var(--board-frame); transition:transform .15s}
+details[open] > summary::after{transform:rotate(90deg)}
+.body{padding:12px 14px 14px; font-size:15px; line-height:1.55}
+.body > :first-child{margin-top:0}
+.body > :last-child{margin-bottom:0}
+
+/* a sub-section inside a section: the four forms of §2 (+, n, q, s) */
+details details{border-width:1px; border-radius:10px; margin:0 0 8px}
+details details > summary{font-family:var(--font-body); font-size:15px; min-height:48px;
+  padding:12px 36px 12px 12px; background:#efe7d9}
+details details .body{padding:10px 12px 12px}
+
+.lead{font-size:15px; margin:0 0 12px; color:var(--ink)}
+.rule{background:#f1f6f1; border-left:4px solid var(--pen-green); border-radius:0 8px 8px 0;
+  padding:8px 10px; margin:10px 0; font-size:14px}
+.rule.warn{background:#fbeeeb; border-left-color:var(--red-pen)}
+
+/* ---- an example you can hear: the whole row is the button (§4.8) ---- */
+.ex{display:block; width:100%; text-align:left; font-family:var(--font-body); font-size:15px;
+  background:#fff; color:var(--ink); border:2px solid var(--board-frame); border-radius:10px;
+  padding:9px 44px 9px 11px; margin:6px 0; min-height:48px; cursor:pointer; position:relative;
+  box-shadow:0 3px 0 var(--board-frame-dark); line-height:1.45}
+.ex:active{transform:translateY(3px); box-shadow:none}
+.ex .pl{display:block; font-size:12.5px; color:var(--ink-soft); margin-top:2px}
+.ex::after{content:'🔊'; position:absolute; right:11px; top:50%; margin-top:-11px; font-size:16px}
+.ex.playing{background:#fff5cf}
+
+/* ---- tables ---- */
+.scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:10px 0}
+table{width:100%; border-collapse:collapse; font-size:14px}
+th,td{border:1px solid var(--card-line); padding:7px 8px; text-align:left; vertical-align:middle}
+th{background:#f3ece0; font-size:12.5px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--board-frame-dark)}
+td.form{font-family:var(--font-mono); font-weight:600; overflow-wrap:break-word}
+td.form.nb{white-space:nowrap}   /* only where a form must never break */
+/* the spelling tables carry three things per row and a speaker, which does not
+   fit 360px as four columns — the condition and the operation share one cell,
+   and the examples get a smaller mono so the whole row fits without a scroller.
+   A scroller here hides the very letter the row exists to show. */
+td.cond{font-size:13px; line-height:1.35}
+td.cond b{display:block}
+/* a comma list of examples may wrap; only the phonetic symbol must not */
+/* the examples are their own line — inline they run straight on from the
+   condition ("…po samogłoscePlays,") and read as one word */
+td.cond span.op{display:block; margin-top:3px}
+td.cond .op{font-family:var(--font-mono); font-weight:700; font-size:12.5px;
+  overflow-wrap:break-word}
+td.cond b.op{white-space:nowrap; font-size:14px}
+/* This nowrap STAYS: `work → working` split over two lines hides the change
+   the row exists to show. It does set the column's minimum to the longest pair,
+   so where a tense has a long one the type steps down instead (§4.12) — tested,
+   not eyeballed: dropping the nowrap made SIX pairs wrap on the Present Simple
+   page, which is the bug it prevents. */
+/* 11.5px, a step below the Present Simple page: this tense's longest pair is
+   `travel → travelling`, and at 12px the table needed 308px on a 300px card. */
+/* THE POLISH PILLS. Polish has no Present Perfect, so every example says which
+   Polish tense it lands in — the one thing a Polish student has to carry. Two
+   quiet tints, deliberately outside the subject/operator/verb/ending colour
+   language (§4.12) so they read as a note about the translation, not as part of
+   the grammar being taught. */
+b.plt{display:inline-block; font-family:var(--font-body); font-weight:700;
+  font-size:11px; letter-spacing:.02em; padding:1px 7px; border-radius:999px;
+  border:1px solid; margin-right:6px; vertical-align:1px; white-space:nowrap}
+b.plt.now{color:#3c5a8a; border-color:#b9c9e2; background:#eaf0f9}
+b.plt.past{color:#8a5a1f; border-color:#e2cfae; background:#f9f1e4}
+.plkey{font-size:12.5px; line-height:1.9; margin-top:8px}
+td.eg{font-family:var(--font-mono); font-weight:600; font-size:11.5px; line-height:1.65;
+  white-space:nowrap; padding-left:5px; padding-right:5px}
+td.say{width:42px; padding:2px; text-align:center}
+tr.playing td{background:#fff5cf}
+/* 36 wide, not 40: the speaker column is the cheapest place to find the few
+   pixels this tense's spelling table needs. The 44px TAP TARGET is the height,
+   which is untouched. */
+.sayb{width:36px; height:44px; border:0; background:transparent; font-size:17px; cursor:pointer;
+  border-radius:8px; line-height:1}
+.sayb:active{background:#f1e7d5}
+
+/* ---- the colour language, the same one the exercises use (§4.1) ---- */
+i.s,i.o,i.v,i.e,i.x,i.g{font-style:normal}
+i.s{color:var(--board-frame-dark); font-weight:700}
+i.o{color:var(--pen-blue); font-weight:700}
+i.v{color:var(--pen-green); font-weight:700}
+i.e{color:var(--red-pen); font-weight:700; text-decoration:underline}
+i.x{color:var(--red-pen); text-decoration:line-through}
+i.g{color:var(--pen-green); font-weight:700}
+code{font-family:var(--font-mono); font-size:13.5px; background:#f3ece0; padding:1px 5px;
+  border-radius:5px}
+
+.formula{font-family:var(--font-mono); font-size:14px; font-weight:600; background:#f3ece0;
+  border-radius:8px; padding:9px 10px; margin:8px 0; line-height:1.7}
+
+/* the row that carries the whole point of the table — the one thing a student
+   should take away if they read nothing else */
+tr.key-row td{background:#fbeeeb; border-top:3px solid var(--red-pen); font-weight:700}
+
+/* a dual-behaviour verb: the LIST is the point — seventeen verbs you can scan,
+   each opening on its two senses rather than seventeen cards unfolded at once */
+details.verb{border-width:1px; border-radius:10px; margin:0 0 6px}
+details.verb > summary{min-height:46px; padding:11px 34px 11px 12px; background:#efe7d9;
+  font-family:var(--font-body); font-size:15px}
+details.verb > summary::after{right:12px; margin-top:-10px; font-size:17px}
+details.verb .body{padding:10px 12px 12px}
+.vb{font-family:var(--font-mono); font-size:15px; font-weight:700; color:var(--board-frame-dark)}
+p.two{margin:0 0 6px; font-size:14.5px; line-height:1.45}
+p.two i{font-style:normal; font-weight:700; font-size:11.5px; text-transform:uppercase;
+  letter-spacing:.03em; margin-right:5px}
+.sense{color:var(--ink-soft); font-size:13px; white-space:nowrap}
+.ex.thin{min-height:44px; padding:9px 44px 9px 11px; font-size:14px; margin:8px 0 0}
+.alt2{display:block; font-size:13.5px; color:var(--ink); margin-top:3px}
+
+.nosound{background:#fbe9e6; color:#8d2f24; border:2px solid var(--red-pen); border-radius:10px;
+  padding:10px 12px; margin:0 0 12px; font-size:13px; line-height:1.4; text-align:center}
+noscript p{background:var(--card-bg); color:var(--ink); border-radius:10px; padding:12px;
+  margin:12px 0; font-size:14px; text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 class="title">Present Perfect</h1>
+  <p class="sub">ściąga — dotknij nagłówka, żeby rozwinąć</p>
+
+  <div class="bar">
+    <button class="btn" id="openAll" type="button">Rozwiń wszystko</button>
+    <button class="btn" id="shutAll" type="button">Zwiń wszystko</button>
+  </div>
+
+  <p class="nosound" id="nosound" hidden>Brak dźwięku? Sprawdź głośność i czy w ustawieniach
+  telefonu jest zainstalowany angielski głos (Text-to-speech).</p>
+
+  <noscript><p>Ta strona potrzebuje JavaScriptu tylko do czytania zdań na głos —
+  cała treść jest widoczna bez niego.</p></noscript>
+
+  <div class="key">
+    <b><i class="s">He</i></b> — podmiot &nbsp;·&nbsp;
+    <b><i class="o">hasn't</i></b> — operator &nbsp;·&nbsp;
+    <b><i class="v">work</i></b> — czasownik &nbsp;·&nbsp;
+    <b><i class="e">ed</i></b> — końcówka &nbsp;·&nbsp;
+    <b><i class="x">wrong</i></b> — błąd
+  </div>
+
+  <div class="key plkey"><b class="plt past">przeszły</b> &nbsp;·&nbsp;
+    <b class="plt now">teraźniejszy</b> — w którym <u>polskim</u> czasie wychodzi to zdanie.
+    Stoi przy każdym przykładzie, bo Present Perfect po polsku nie istnieje.</div>
+
+    <!-- 1 ................................................................ -->
+  <details open>
+    <summary>1. W skrócie</summary>
+    <div class="body">
+      <p class="lead">Present Perfect łączy <b>przeszłość z teraźniejszością</b>: coś się
+      wydarzyło albo trwa, a <b>skutek widać dziś</b>. Nie mówimy <u>kiedy</u> — od tego
+      jest Past Simple.</p>
+      <div class="formula">
+        <i class="s">I / you / we / they</i> + <i class="o">have</i> + <i class="v">work</i><i class="e">ed</i><br>
+        <i class="s">he / she / it</i> + <i class="o">has</i> + <i class="v">work</i><i class="e">ed</i>
+      </div>
+
+      <div class="rule warn"><b>Nie tłumacz przez polski czas.</b> To samo angielskie zdanie
+      wychodzi po polsku raz w przeszłym, raz w teraźniejszym — decyduje angielski, nie polski.</div>
+
+      <button class="ex" data-say="We have finished the work.">We <i class="o">have</i> <i class="v">finish</i><i class="e">ed</i> the work.
+        <span class="pl"><b class="plt past">przeszły</b>Skończyliśmy pracę. — i teraz jest zrobiona</span></button>
+      <button class="ex" data-say="Tom has lived in Berlin for ten years.">Tom <i class="o">has</i> <i class="v">liv</i><i class="e">ed</i> in Berlin for ten years.
+        <span class="pl"><b class="plt now">teraźniejszy</b>Tom mieszka w Berlinie od dziesięciu lat / (przez dziesięć lat) — i dalej tam mieszka</span></button>
+
+      <div class="rule"><b>Dwie części, obie obowiązkowe:</b> <i class="o">have / has</i> +
+      <b>3. forma</b> — ta trzecia z tabelki: <i class="v">work</i> – <i class="v">worked</i> –
+      <i class="v">worked</i>, ale <i class="v">go</i> – <i class="v">went</i> –
+      <i class="e">gone</i>.</div>
+    </div>
+  </details>
+
+  <!-- 2 ................................................................ -->
+  <details>
+    <summary>2. Budowa</summary>
+    <div class="body">
+
+      <details>
+        <summary>➕ Twierdzenie</summary>
+        <div class="body">
+          <div class="formula"><i class="s">podmiot</i> + <i class="o">have / has</i> +
+            <b>3. forma</b></div>
+          <div class="scroll"><table>
+            <tr><th>osoba</th><th>forma</th><th></th></tr>
+            <tr><td><i class="s">I / you / we / they</i></td>
+                <td class="form nb"><i class="o">have</i> <i class="v">work</i><i class="e">ed</i></td>
+                <td class="say"><button class="sayb" data-say="I have worked. You have worked. We have worked. They have worked.">🔊</button></td></tr>
+            <tr><td><i class="s">he / she / it</i></td>
+                <td class="form nb"><i class="o">has</i> <i class="v">work</i><i class="e">ed</i></td>
+                <td class="say"><button class="sayb" data-say="He has worked. She has worked. It has worked.">🔊</button></td></tr>
+          </table></div>
+          <div class="rule">W mowie prawie zawsze skracamy: <i class="o">I've</i>,
+          <i class="o">you've</i>, <i class="o">he's</i>, <i class="o">we've</i>,
+          <i class="o">they've</i>.</div>
+          <div class="rule warn"><i class="o">he's</i> to <b>albo</b> <i class="o">he has</i>,
+          <b>albo</b> <i class="o">he is</i> — rozstrzyga to, co idzie dalej:
+          <i class="g">He's worked here for a year.</i> (has) obok
+          <i class="g">He's working now.</i> (is).</div>
+      <button class="ex" data-say="Tom has finished his homework.">Tom <i class="o">has</i> <i class="v">finish</i><i class="e">ed</i> his homework.
+        <span class="pl"><b class="plt past">przeszły</b>Tom skończył lekcje.</span></button>
+        </div>
+      </details>
+
+      <details>
+        <summary>➖ Przeczenie</summary>
+        <div class="body">
+          <div class="formula"><i class="s">podmiot</i> + <i class="o">haven't / hasn't</i> +
+            <b>3. forma</b></div>
+          <div class="scroll"><table>
+            <tr><th>osoba</th><th>forma</th><th></th></tr>
+            <tr><td><i class="s">I / you / we / they</i></td>
+                <td class="form nb"><i class="o">haven't</i> <i class="v">work</i><i class="e">ed</i></td>
+                <td class="say"><button class="sayb" data-say="I haven't worked. You haven't worked. We haven't worked. They haven't worked.">🔊</button></td></tr>
+            <tr><td><i class="s">he / she / it</i></td>
+                <td class="form nb"><i class="o">hasn't</i> <i class="v">work</i><i class="e">ed</i></td>
+                <td class="say"><button class="sayb" data-say="He hasn't worked. She hasn't worked. It hasn't worked.">🔊</button></td></tr>
+          </table></div>
+          <div class="rule warn"><b>Nie ma tu <i class="o">don't</i> ani <i class="o">didn't</i>!</b>
+          Przeczy samo <i class="o">have</i> albo <i class="o">has</i>, zależnie od osoby:
+          <i class="x">He doesn't worked.</i> → <i class="g">He hasn't worked.</i></div>
+          <p class="lead">Porównaj — 3. forma zostaje w obu:</p>
+      <button class="ex" data-say="My brother has eaten meat.">My brother <i class="o">has</i> <i class="e">eaten</i> meat.
+        <span class="pl"><b class="plt past">przeszły</b>Mój brat jadł mięso.</span></button>
+      <button class="ex" data-say="My brother hasn't eaten meat.">My brother <i class="o">hasn't</i> <i class="e">eaten</i> meat.
+        <span class="pl"><b class="plt past">przeszły</b>Mój brat nie jadł mięsa.</span></button>
+        </div>
+      </details>
+
+      <details>
+        <summary>❓ Pytanie</summary>
+        <div class="body">
+          <div class="formula"><i class="o">Have / Has</i> + <i class="s">podmiot</i> +
+            <b>3. forma</b> … ?</div>
+          <div class="scroll"><table>
+            <tr><th>osoba</th><th>forma</th><th></th></tr>
+            <tr><td><i class="s">I / you / we / they</i></td>
+                <td class="form nb"><i class="o">Have</i> you <i class="v">work</i><i class="e">ed</i>?</td>
+                <td class="say"><button class="sayb" data-say="Have I worked? Have you worked? Have we worked? Have they worked?">🔊</button></td></tr>
+            <tr><td><i class="s">he / she / it</i></td>
+                <td class="form nb"><i class="o">Has</i> he <i class="v">work</i><i class="e">ed</i>?</td>
+                <td class="say"><button class="sayb" data-say="Has he worked? Has she worked? Has it worked?">🔊</button></td></tr>
+          </table></div>
+          <div class="rule warn">Pytanie robi <b>szyk</b>, nie operator:
+          <i class="o">have / has</i> idzie przed podmiot —
+          <i class="x">Do you worked?</i> → <i class="g">Have you worked?</i></div>
+          <p class="lead">Porównaj — to samo zdanie, dwa szyki:</p>
+      <button class="ex" data-say="My sister has finished.">My sister <i class="o">has</i> <i class="v">finish</i><i class="e">ed</i>.
+        <span class="pl"><b class="plt past">przeszły</b>Moja siostra skończyła.</span></button>
+      <button class="ex" data-say="Has my sister finished?"><i class="o">Has</i> my sister <i class="v">finish</i><i class="e">ed</i>?
+        <span class="pl"><b class="plt past">przeszły</b>Czy moja siostra skończyła?</span></button>
+          <p class="lead"><b>Pytania szczegółowe</b> — słowo pytające idzie na sam przód:</p>
+          <div class="formula">How long + <i class="o">has</i> + <i class="s">podmiot</i> +
+            <b>3. forma</b> … ?</div>
+      <button class="ex" data-say="How long has your sister worked here?">How long <i class="o">has</i> your sister <i class="v">work</i><i class="e">ed</i> here?
+        <span class="pl"><b class="plt now">teraźniejszy</b>Jak długo twoja siostra tu pracuje?</span></button>
+        </div>
+      </details>
+
+      <details>
+        <summary>✔️ Krótkie odpowiedzi</summary>
+        <div class="body">
+          <div class="formula">Yes, <i class="s">podmiot</i> <i class="o">have / has</i>.<br>
+            No, <i class="s">podmiot</i> <i class="o">haven't / hasn't</i>.</div>
+          <div class="scroll"><table>
+            <tr><th>pytanie</th><th>odpowiedzi</th><th></th></tr>
+            <tr><td class="form nb"><i class="o">Have</i> you …?</td>
+                <td class="form">Yes, I <i class="o">have</i>.<br>No, I <i class="o">haven't</i>.</td>
+                <td class="say"><button class="sayb" data-say="Have you finished? Yes, I have. No, I haven't.">🔊</button></td></tr>
+            <tr><td class="form nb"><i class="o">Has</i> she …?</td>
+                <td class="form">Yes, she <i class="o">has</i>.<br>No, she <i class="o">hasn't</i>.</td>
+                <td class="say"><button class="sayb" data-say="Has she finished? Yes, she has. No, she hasn't.">🔊</button></td></tr>
+          </table></div>
+          <div class="rule warn">Krótka odpowiedź powtarza <b>have</b> albo <b>has</b> —
+          zależnie od osoby (<i class="g">Yes, I have.</i> ale <i class="g">Yes, she has.</i>) —
+          nigdy
+          <i class="o">did</i>: <i class="x">Have you finished? Yes, I did.</i> →
+          <i class="g">Yes, I have.</i></div>
+          <div class="rule warn">W odpowiedzi twierdzącej <b>nie skracamy</b>:
+          <i class="x">Yes, I've.</i> → <i class="g">Yes, I have.</i></div>
+      <button class="ex" data-say="Has she finished? No, she hasn't."><i class="o">Has</i> she <i class="v">finish</i><i class="e">ed</i>? — No, she <i class="o">hasn't</i>.
+        <span class="pl"><b class="plt past">przeszły</b>Czy ona skończyła? — Nie.</span></button>
+        </div>
+      </details>
+
+    </div>
+  </details>
+
+  <!-- 3 ................................................................ -->
+  <details>
+    <summary>3. Kiedy używamy</summary>
+    <div class="body">
+      <p class="lead">Pięć zastosowań. W każdym te same cztery formy, żeby było widać, że to
+      wciąż ten sam czas — i plakietka, gdzie zdanie ląduje po polsku.</p>
+
+      <details>
+        <summary>Doświadczenie — kiedyś w życiu</summary>
+        <div class="body">
+        <button class="ex" data-say="We have been to London twice.">We <i class="o">have</i> <i class="e">been</i> to London twice.
+          <span class="pl"><b class="plt past">przeszły</b>Byliśmy w Londynie dwa razy.</span></button>
+        <button class="ex" data-say="Anna has met a famous actor.">Anna <i class="o">has</i> <i class="e">met</i> a famous actor.
+          <span class="pl"><b class="plt past">przeszły</b>Anna poznała znanego aktora.</span></button>
+        <button class="ex" data-say="My parents haven't been to Asia.">My parents <i class="o">haven't</i> <i class="e">been</i> to Asia.
+          <span class="pl"><b class="plt past">przeszły</b>Moi rodzice nie byli w Azji.</span></button>
+        <button class="ex" data-say="Kate has never eaten sushi."><i class="s">Kate</i> <i class="o">has</i> <i class="v">never</i> <i class="e">eaten</i> sushi.
+          <span class="pl"><b class="plt past">przeszły</b>Kate nigdy nie jadła sushi.</span></button>
+      <button class="ex" data-say="Have you ever seen a whale? Yes, I have."><i class="o">Have</i> you <i class="v">ever</i> <i class="e">seen</i> a whale? — Yes, I <i class="o">have</i>.
+          <span class="pl"><b class="plt past">przeszły</b>Czy widziałeś kiedyś wieloryba? — Tak.</span></button>
+          <div class="rule"><i class="v">ever</i> = kiedykolwiek, <i class="v">never</i> = nigdy.
+          Oba stoją <b>między</b> <i class="o">have / has</i> a 3. formą — a przy
+          <i class="v">never</i> nie ma już żadnego <i class="o">not</i>.</div>
+          <div class="rule">Nieważne <b>kiedy</b> — ważne, że <b>się zdarzyło</b>. Podaj datę, a zdanie natychmiast przechodzi do Past Simple.</div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Skutek widać teraz</summary>
+        <div class="body">
+        <button class="ex" data-say="We have lost the tickets.">We <i class="o">have</i> <i class="e">lost</i> the tickets.
+          <span class="pl"><b class="plt past">przeszły</b>Zgubiliśmy bilety. — i dalej ich nie mamy</span></button>
+        <button class="ex" data-say="Tom has broken his leg.">Tom <i class="o">has</i> <i class="e">broken</i> his leg.
+          <span class="pl"><b class="plt past">przeszły</b>Tom złamał nogę. — i nadal jest w gipsie</span></button>
+        <button class="ex" data-say="The train hasn't arrived yet.">The train <i class="o">hasn't</i> <i class="v">arriv</i><i class="e">ed</i> yet.
+          <span class="pl"><b class="plt past">przeszły</b>Pociąg jeszcze nie przyjechał.</span></button>
+        <button class="ex" data-say="Has Anna found her keys? No, she hasn't."><i class="o">Has</i> Anna <i class="e">found</i> her keys? — No, she <i class="o">hasn't</i>.
+          <span class="pl"><b class="plt past">przeszły</b>Czy Anna znalazła klucze? — Nie.</span></button>
+          <div class="rule">Zdarzenie jest w przeszłości, ale mówimy o nim <b>dlatego, że coś z niego wynika teraz</b>.</div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Trwa do dziś — <i class="v">for</i> / <i class="v">since</i></summary>
+        <div class="body">
+        <button class="ex" data-say="We have lived here for ten years.">We <i class="o">have</i> <i class="v">liv</i><i class="e">ed</i> here <i class="v">for</i> ten years.
+          <span class="pl"><b class="plt now">teraźniejszy</b>Mieszkamy tu od dziesięciu lat / (przez dziesięć lat).</span></button>
+        <button class="ex" data-say="Kate has known Tom since primary school.">Kate <i class="o">has</i> <i class="e">known</i> Tom <i class="v">since</i> primary school.
+          <span class="pl"><b class="plt now">teraźniejszy</b>Kate zna Toma od podstawówki.</span></button>
+        <button class="ex" data-say="My parents haven't had a holiday for two years.">My parents <i class="o">haven't</i> <i class="e">had</i> a holiday <i class="v">for</i> two years.
+          <span class="pl"><b class="plt now">teraźniejszy</b>Moi rodzice od dwóch lat / (przez dwa lata) nie mają wakacji.</span></button>
+        <button class="ex" data-say="Has Tom worked here for long? Yes, he has."><i class="o">Has</i> Tom <i class="v">work</i><i class="e">ed</i> here <i class="v">for</i> long? — Yes, he <i class="o">has</i>.
+          <span class="pl"><b class="plt now">teraźniejszy</b>Czy Tom pracuje tu długo? — Tak.</span></button>
+          <div class="rule"><b>To jest ta grupa, która myli.</b> Po polsku mówisz w czasie <b>teraźniejszym</b> — <i class="g">mieszkamy</i>, <i class="g">zna</i>, <i class="g">pracuje</i> — a po angielsku musi być Present Perfect, bo czynność <b>zaczęła się wcześniej</b>. Stąd błąd <i class="x">We live here for ten years.</i></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Okres, który jeszcze się nie skończył</summary>
+        <div class="body">
+        <button class="ex" data-say="We have had three tests this week.">We <i class="o">have</i> <i class="e">had</i> three tests this week.
+          <span class="pl"><b class="plt past">przeszły</b>Mieliśmy w tym tygodniu trzy sprawdziany.</span></button>
+        <button class="ex" data-say="Anna has phoned twice today.">Anna <i class="o">has</i> <i class="v">phon</i><i class="e">ed</i> twice today.
+          <span class="pl"><b class="plt past">przeszły</b>Anna dzwoniła dziś dwa razy.</span></button>
+        <button class="ex" data-say="My sister hasn't studied much this month.">My sister <i class="o">hasn't</i> <i class="v">stud</i><i class="e">ied</i> much this month.
+          <span class="pl"><b class="plt past">przeszły</b>Moja siostra mało się uczyła w tym miesiącu.</span></button>
+        <button class="ex" data-say="Have you seen Tom this week? No, I haven't."><i class="o">Have</i> you <i class="e">seen</i> Tom this week? — No, I <i class="o">haven't</i>.
+          <span class="pl"><b class="plt past">przeszły</b>Czy widziałeś Toma w tym tygodniu? — Nie.</span></button>
+      <button class="ex" data-say="We have seen three good films recently."><i class="s">We</i> <i class="o">have</i> <i class="e">seen</i> three good films <i class="v">recently</i>.
+          <span class="pl"><b class="plt past">przeszły</b>Ostatnio widzieliśmy trzy dobre filmy.</span></button>
+      <button class="ex" data-say="Tom hasn't been to the gym lately."><i class="s">Tom</i> <i class="o">hasn't</i> <i class="e">been</i> to the gym <i class="v">lately</i>.
+          <span class="pl"><b class="plt past">przeszły</b>Tom ostatnio nie chodził na siłownię.</span></button>
+          <div class="rule"><i class="v">recently</i> i <i class="v">lately</i> robią to samo, nie
+          nazywając okresu: „ostatnio", czyli w czasie, który jeszcze się nie zamknął.</div>
+          <div class="rule"><i class="v">today</i>, <i class="v">this week</i>, <i class="v">this year</i> — ten tydzień jeszcze trwa, więc liczba może się jeszcze zmienić. <i class="v">last week</i> już się skończył → Past Simple.</div>
+        </div>
+      </details>
+
+      <details>
+        <summary><i class="v">just</i> / <i class="v">already</i> / <i class="v">yet</i></summary>
+        <div class="body">
+        <button class="ex" data-say="We have just finished dinner.">We <i class="o">have</i> <i class="v">just</i> <i class="v">finish</i><i class="e">ed</i> dinner.
+          <span class="pl"><b class="plt past">przeszły</b>Właśnie skończyliśmy kolację.</span></button>
+        <button class="ex" data-say="Tom has already packed his bag.">Tom <i class="o">has</i> <i class="v">already</i> <i class="v">pack</i><i class="e">ed</i> his bag.
+          <span class="pl"><b class="plt past">przeszły</b>Tom już spakował torbę.</span></button>
+        <button class="ex" data-say="Anna hasn't written the email yet.">Anna <i class="o">hasn't</i> <i class="e">written</i> the email <i class="v">yet</i>.
+          <span class="pl"><b class="plt past">przeszły</b>Anna jeszcze nie napisała maila.</span></button>
+        <button class="ex" data-say="Has the film started yet? Yes, it has."><i class="o">Has</i> the film <i class="v">start</i><i class="e">ed</i> <i class="v">yet</i>? — Yes, it <i class="o">has</i>.
+          <span class="pl"><b class="plt past">przeszły</b>Czy film się już zaczął? — Tak.</span></button>
+          <div class="rule">Świeża wiadomość: stało się <b>przed chwilą</b> i jeszcze o tym mówimy.</div>
+        </div>
+      </details>
+
+    </div>
+  </details>
+
+  <!-- 4 ................................................................ -->
+  <details>
+    <summary>4. Pisownia: <span style="font-family:var(--font-mono)">-ed</span> (3. forma)</summary>
+    <div class="body">
+      <p class="lead">Dotyczy <b>każdej</b> osoby — 3. forma jest zawsze taka sama.</p>
+      <div class="scroll"><table>
+        <tr><th>zasada</th><th>przykłady</th><th></th></tr>
+        <tr><td class="cond"><b>większość czasowników</b><span class="op">+ <i class="e">ed</i></span></td>
+            <td class="eg"><i class="v">work</i> → <i class="v">work</i><i class="e">ed</i><br>
+              <i class="v">open</i> → <i class="v">open</i><i class="e">ed</i><br>
+              <i class="v">start</i> → <i class="v">start</i><i class="e">ed</i><br>
+              <i class="v">watch</i> → <i class="v">watch</i><i class="e">ed</i></td>
+            <td class="say"><button class="sayb" data-say="work, worked. open, opened. start, started. watch, watched.">🔊</button></td></tr>
+        <tr><td class="cond"><b>nieme <code>-e</code> na końcu</b><span class="op">+ <i class="e">d</i></span></td>
+            <td class="eg"><i class="v">like</i> → <i class="v">like</i><i class="e">d</i><br>
+              <i class="v">dance</i> → <i class="v">dance</i><i class="e">d</i><br>
+              <i class="v">arrive</i> → <i class="v">arrive</i><i class="e">d</i></td>
+            <td class="say"><button class="sayb" data-say="like, liked. dance, danced. arrive, arrived.">🔊</button></td></tr>
+        <tr><td class="cond"><b><u>spółgłoska</u> + <code>y</code></b><span class="op"><code>y</code> → <i class="e">ied</i></span></td>
+            <td class="eg"><i class="v">stud</i>y → <i class="v">stud</i><i class="e">ied</i><br>
+              <i class="v">carr</i>y → <i class="v">carr</i><i class="e">ied</i><br>
+              <i class="v">tr</i>y → <i class="v">tr</i><i class="e">ied</i></td>
+            <td class="say"><button class="sayb" data-say="study, studied. carry, carried. try, tried.">🔊</button></td></tr>
+        <tr><td class="cond"><b><u>samogłoska</u> + <code>y</code></b><span class="op">+ <i class="e">ed</i></span></td>
+            <td class="eg"><i class="v">play</i> → <i class="v">play</i><i class="e">ed</i><br>
+              <i class="v">enjoy</i> → <i class="v">enjoy</i><i class="e">ed</i><br>
+              <i class="v">stay</i> → <i class="v">stay</i><i class="e">ed</i></td>
+            <td class="say"><button class="sayb" data-say="play, played. enjoy, enjoyed. stay, stayed.">🔊</button></td></tr>
+        <tr><td class="cond"><b>jedna sylaba:<br>spółgłoska – samogłoska – spółgłoska</b><span class="op">podwój ostatnią</span></td>
+            <td class="eg"><i class="v">stop</i> → <i class="v">stop</i><i class="e">ped</i><br>
+              <i class="v">plan</i> → <i class="v">plan</i><i class="e">ned</i><br>
+              <i class="v">drop</i> → <i class="v">drop</i><i class="e">ped</i></td>
+            <td class="say"><button class="sayb" data-say="stop, stopped. plan, planned. drop, dropped.">🔊</button></td></tr>
+        <tr><td class="cond"><b>koniec na <code>-l</code><br>po samogłosce</b><span class="op">podwój (BrE)</span></td>
+            <td class="eg"><i class="v">travel</i> → <i class="v">travel</i><i class="e">led</i><br>
+              <i class="v">cancel</i> → <i class="v">cancel</i><i class="e">led</i></td>
+            <td class="say"><button class="sayb" data-say="travel, travelled. cancel, cancelled.">🔊</button></td></tr>
+        <tr><td class="cond"><b>nieregularne</b><span class="op">do nauczenia</span></td>
+            <td class="eg"><i class="v">go</i> → <i class="e">gone</i><br>
+              <i class="v">see</i> → <i class="e">seen</i><br>
+              <i class="v">write</i> → <i class="e">written</i><br>
+              <i class="v">be</i> → <i class="e">been</i></td>
+            <td class="say"><button class="sayb" data-say="go, gone. see, seen. write, written. be, been.">🔊</button></td></tr>
+      </table></div>
+    </div>
+  </details>
+
+  <!-- 5 ................................................................ -->
+  <details>
+    <summary>5. Słowa-sygnały</summary>
+    <div class="body">
+      <p class="lead">Jeśli w zdaniu jest któreś z tych słów, to prawie na pewno
+      Present Perfect:</p>
+      <div class="scroll"><table>
+        <tr><th>doświadczenie, świeża wiadomość</th><th>okres, który trwa</th></tr>
+        <tr><td class="form">ever, never,<br>just, already, yet,<br>so far,<br>
+              recently, lately,<br>twice, three times</td>
+            <td class="form">for, since,<br>How long …?,<br>today, tonight,<br>
+              this week / month / year</td></tr>
+      </table></div>
+
+      <div class="rule"><b>Gdzie stoją <i class="v">just</i>, <i class="v">already</i>,
+      <i class="v">never</i>, <i class="v">ever</i>?</b> Zawsze <b>między</b>
+      <i class="o">have / has</i> a 3. formą. Operator jest niebieski, żeby było widać, że
+      słowo wchodzi zaraz za nim.</div>
+      <button class="ex" data-say="Tom has just finished his homework.">Tom <i class="o">has</i> <i class="v">just</i> <i class="v">finish</i><i class="e">ed</i> his homework.
+        <span class="pl"><b class="plt past">przeszły</b>Tom właśnie skończył lekcje.</span></button>
+      <button class="ex" data-say="We have already seen that film.">We <i class="o">have</i> <i class="v">already</i> <i class="e">seen</i> that film.
+        <span class="pl"><b class="plt past">przeszły</b>Już widzieliśmy ten film.</span></button>
+      <div class="rule warn"><i class="x">Tom just has finished…</i> →
+      <i class="g">Tom has just finished…</i></div>
+
+      <div class="rule"><b><i class="v">yet</i> idzie na koniec</b> — i tylko w przeczeniach
+      i pytaniach.</div>
+      <button class="ex" data-say="Anna hasn't finished yet.">Anna <i class="o">hasn't</i> <i class="v">finish</i><i class="e">ed</i> <i class="v">yet</i>.
+        <span class="pl"><b class="plt past">przeszły</b>Anna jeszcze nie skończyła.</span></button>
+      <button class="ex" data-say="Has the shop opened yet?"><i class="o">Has</i> the shop <i class="v">open</i><i class="e">ed</i> <i class="v">yet</i>?
+        <span class="pl"><b class="plt past">przeszły</b>Czy sklep już otwarty?</span></button>
+
+      <div class="rule"><b><i class="v">for</i> czy <i class="v">since</i>?</b> Oba znaczą po
+      polsku „od", więc decyduje to, co idzie <b>po</b> nich. Tylko <i class="v">for</i> można oddać
+      także słowem <b>„przez"</b> — i wtedy zmienia się przypadek:
+      <i class="g">od dziesięciu lat</i>, ale <i class="g">przez dziesięć lat</i>.</div>
+      <div class="scroll"><table>
+        <tr><th>słowo</th><th>po nim</th></tr>
+        <tr><td class="form nb"><i class="v">for</i></td>
+            <td class="form"><b>jak długo</b> — po polsku <b>od / (przez)</b><br>
+              two years, ten minutes, a week, ages</td></tr>
+        <tr><td class="form nb"><i class="v">since</i></td>
+            <td class="form"><b>od kiedy</b> — po polsku tylko <b>od</b><br>
+              Monday, May, my birthday, primary school</td></tr>
+      </table></div>
+      <button class="ex" data-say="Kate has worked here for two years.">Kate <i class="o">has</i> <i class="v">work</i><i class="e">ed</i> here <i class="v">for</i> two years.
+        <span class="pl"><b class="plt now">teraźniejszy</b>Kate pracuje tu od dwóch lat / (przez dwa lata).</span></button>
+      <button class="ex" data-say="Kate has worked here since Monday.">Kate <i class="o">has</i> <i class="v">work</i><i class="e">ed</i> here <i class="v">since</i> Monday.
+        <span class="pl"><b class="plt now">teraźniejszy</b>Kate pracuje tu od poniedziałku.</span></button>
+    </div>
+  </details>
+
+  <!-- 6 ................................................................ -->
+  <details>
+    <summary>6. Present Perfect ≠ Past Simple</summary>
+    <div class="body">
+      <div class="scroll"><table>
+        <tr><th>Present Perfect</th><th>Past Simple</th></tr>
+        <tr><td>nieokreślony czas,<br>skutek teraz</td><td>określony,<br>skończony czas</td></tr>
+        <tr><td class="form">We <i class="o">have</i> <i class="e">seen</i> that film.</td>
+            <td class="form">We <i class="e">saw</i> that film last night.</td></tr>
+        <tr><td class="form">ever, never, just,<br>yet, for, since,<br>this week</td>
+            <td class="form">yesterday, last week,<br>in May, two days ago,<br>when …?</td></tr>
+        <tr class="key-row"><td class="form"><i class="x">We have seen that film yesterday.</i></td>
+            <td class="form">We <i class="e">saw</i> that film yesterday.</td></tr>
+      </table></div>
+      <div class="rule warn"><b>Jedna zasada rozstrzyga prawie wszystko:</b> jeśli w zdaniu
+      stoi <b>konkretny, skończony czas</b> — <i class="v">yesterday</i>,
+      <i class="v">last week</i>, <i class="v">in May</i>, <i class="v">at six</i> — to
+      <b>Past Simple</b>, zawsze. Present Perfect nigdy nie chodzi z datą.</div>
+
+      <div class="rule"><b><i class="v">has been to</i> czy <i class="v">has gone to</i>?</b>
+      <i class="v">been</i> = był i <b>wrócił</b>. <i class="v">gone</i> = pojechał i
+      <b>jest tam</b>.</div>
+      <button class="ex" data-say="Tom has been to Spain.">Tom <i class="o">has</i> <i class="e">been</i> to Spain.
+        <span class="pl"><b class="plt past">przeszły</b>Tom był w Hiszpanii. — i już wrócił</span></button>
+      <button class="ex" data-say="Tom has gone to Spain.">Tom <i class="o">has</i> <i class="e">gone</i> to Spain.
+        <span class="pl"><b class="plt past">przeszły</b>Tom pojechał do Hiszpanii. — i nadal tam jest</span></button>
+
+      <details>
+        <summary>Po polsku jeden czas — po angielsku dwa</summary>
+        <div class="body">
+          <p class="lead">Polski nie rozróżnia tych dwóch sytuacji: to samo zdanie służy
+          do obu. Angielski rozróżnia — i to <b>my</b> musimy zdecydować, który wybrać.</p>
+          <div class="rule"><b>Widzieliśmy ten film.</b> &nbsp;/&nbsp; <b>Widzieliśmy ten film wczoraj.</b></div>
+          <button class="ex" data-say="We have seen that film.">We <i class="o">have</i> <i class="e">seen</i> that film.
+            <span class="pl"><b class="plt past">przeszły</b>Widzieliśmy ten film.</span></button>
+          <button class="ex" data-say="We saw that film yesterday.">We <i class="e">saw</i> that film yesterday.
+            <span class="pl"><b class="plt past">przeszły</b>Widzieliśmy ten film wczoraj.</span></button>
+          <div class="rule">Bez daty → Present Perfect. Z datą → Past Simple.</div>
+          <div class="rule"><b>Tom był w Londynie.</b> &nbsp;/&nbsp; <b>Tom był w Londynie w maju.</b></div>
+          <button class="ex" data-say="Tom has been to London.">Tom <i class="o">has</i> <i class="e">been</i> to London.
+            <span class="pl"><b class="plt past">przeszły</b>Tom był w Londynie.</span></button>
+          <button class="ex" data-say="Tom was in London in May.">Tom <i class="e">was</i> in London in May.
+            <span class="pl"><b class="plt past">przeszły</b>Tom był w Londynie w maju.</span></button>
+          <div class="rule">Ten sam polski czas, dwa różne angielskie — rozstrzyga <i class="v">in May</i>.</div>
+          <div class="rule"><b>Anna straciła klucze.</b> &nbsp;/&nbsp; <b>Anna straciła klucze w zeszłym tygodniu.</b></div>
+          <button class="ex" data-say="Anna has lost her keys.">Anna <i class="o">has</i> <i class="e">lost</i> her keys.
+            <span class="pl"><b class="plt past">przeszły</b>Anna straciła klucze.</span></button>
+          <button class="ex" data-say="Anna lost her keys last week.">Anna <i class="e">lost</i> her keys last week.
+            <span class="pl"><b class="plt past">przeszły</b>Anna straciła klucze w zeszłym tygodniu.</span></button>
+          <div class="rule"><i class="v">last week</i> to czas zamknięty, więc Past Simple.</div>
+          <div class="rule warn"><b>Druga pułapka idzie w drugą stronę.</b> Tam, gdzie
+          po polsku mówimy w czasie <b>teraźniejszym</b> z „od" —
+          <i class="g">Mieszkamy tu od dziesięciu lat.</i> — angielski wymaga Present
+          Perfect: <i class="x">We live here for ten years.</i> →
+          <i class="g">We have lived here for ten years.</i></div>
+        </div>
+      </details>
+    </div>
+  </details>
+
+  <!-- 7 ................................................................ -->
+  <details>
+    <summary>7. Co działa tak samo w innych czasach</summary>
+    <div class="body">
+      <p class="lead">Present Perfect nie jest wyspą — ten sam mechanizm wraca później:</p>
+      <div class="scroll"><table>
+        <tr><th>wzór</th><th>Present Perfect</th><th>Past Perfect</th></tr>
+        <tr><td>pytanie</td>
+            <td class="form"><i class="o">Have</i> you <i class="v">work</i><i class="e">ed</i>?</td>
+            <td class="form"><i class="o">Had</i> you <i class="v">work</i><i class="e">ed</i>?</td></tr>
+        <tr><td>przeczenie</td>
+            <td class="form"><i class="o">haven't</i> <i class="v">work</i><i class="e">ed</i></td>
+            <td class="form"><i class="o">hadn't</i> <i class="v">work</i><i class="e">ed</i></td></tr>
+        <tr><td>krótka odp.</td>
+            <td class="form">Yes, I <i class="o">have</i>.<br>No, I <i class="o">haven't</i>.</td>
+            <td class="form">Yes, I <i class="o">had</i>.<br>No, I <i class="o">hadn't</i>.</td></tr>
+      </table></div>
+      <div class="rule"><b>Zmienia się tylko <i class="o">have</i> → <i class="o">had</i>.</b>
+      3. forma jest identyczna w obu czasach — nauczysz się jej raz, a użyjesz wszędzie:
+      też w <i class="o">will have</i> <i class="v">work</i><i class="e">ed</i> i w stronie
+      biernej <i class="o">is</i> <i class="v">writt</i><i class="e">en</i>.</div>
+      <div class="rule warn"><b>Różnica wobec Past Simple:</b> tam operatorem jest
+      <i class="o">did</i>, a tu <b>samo <i class="o">have / has</i></b> — dlatego
+      <i class="x">Did you finished?</i> nie istnieje.</div>
+    </div>
+  </details>
+
+  <!-- 8 ................................................................ -->
+  <details>
+    <summary>8. Najczęstsze błędy</summary>
+    <div class="body">
+      <p class="lead">Na głos czytana jest <b>tylko poprawna wersja</b> — błędnej lepiej nie słyszeć.</p>
+      <button class="ex" data-say="Tom saw her yesterday."><i class="x">Tom has seen her yesterday.</i> → <i class="g">Tom saw her yesterday.</i>
+        <span class="pl">konkretny czas → Past Simple</span></button>
+      <button class="ex" data-say="We have lived here for ten years."><i class="x">We live here for ten years.</i> → <i class="g">We have lived here for ten years.</i>
+        <span class="pl">po polsku teraźniejszy, po angielsku Present Perfect</span></button>
+      <button class="ex" data-say="Anna has been here since Monday."><i class="x">Anna is here since Monday.</i> → <i class="g">Anna has been here since Monday.</i>
+        <span class="pl">to samo z to be</span></button>
+      <button class="ex" data-say="He has gone home."><i class="x">He has went home.</i> → <i class="g">He has gone home.</i>
+        <span class="pl">po have zawsze 3. forma, nie 2.</span></button>
+      <button class="ex" data-say="Kate hasn't finished."><i class="x">Kate doesn't have finished.</i> → <i class="g">Kate hasn't finished.</i>
+        <span class="pl">przeczy samo have / has — zależnie od osoby</span></button>
+      <button class="ex" data-say="Have you finished? Yes, I have."><i class="x">Have you finished? Yes, I did.</i> → <i class="g">Have you finished? Yes, I have.</i>
+        <span class="pl">krótka odpowiedź powtarza have / has — zależnie od osoby</span></button>
+      <button class="ex" data-say="Tom has lived here for ten years."><i class="x">Tom has lived here since ten years.</i> → <i class="g">Tom has lived here for ten years.</i>
+        <span class="pl">for = jak długo, since = od kiedy</span></button>
+    </div>
+  </details>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* how a written form should be SAID, where the two differ (§4.6) */
+var SPOKEN = {
+  /* the bare `live` of the silent-e row is read /laɪv/ on its own — there is no
+     sentence around it to say it is the verb. `living` is fine as it stands. */
+  'make, making. write, writing. live, living. dance, dancing.':
+    'make, making. write, writing. liv, living. dance, dancing.'
+};
+function spoken(t){ return SPOKEN[t] || t; }
+
+/* ============================================================
+   VOICES (§5.4) — en-GB first, English only, never the whole list
+   ============================================================ */
+var maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  var all=[];
+  try{ all = (window.speechSynthesis && speechSynthesis.getVoices()) || []; }catch(e){ all=[]; }
+  var gb = all.filter(function(v){ return /^en[-_]GB/i.test(v.lang||''); });
+  var en = all.filter(function(v){ return /^en/i.test(v.lang||''); });
+  var voices = gb.length ? gb : en;
+  englishVoice = voices[0] || null;
+  maleVoice = voices.filter(function(v){ return /male/i.test(v.name) && !/female/i.test(v.name); })[0] || null;
+  femaleVoice = voices.filter(function(v){ return /female/i.test(v.name); })[0] || null;
+}
+refreshVoices();
+try{ if(window.speechSynthesis) speechSynthesis.onvoiceschanged = refreshVoices; }catch(e){}
+
+var soundOn = true;    // no mute button, at the teacher's request: the reading
+                       // IS the exercise here, so there is nothing to switch off
+var speakCount = 0;
+var silent = 0;        // utterances that never reached `onstart`
+
+/* PRIME THE ENGINE ON THE FIRST TOUCH.
+   Mobile browsers only allow speech from a user activation — and in THIS family
+   the first reading of the page is triggered by TYPING, not by a tap: the word
+   is accepted on the `input` event (§1). A keystroke on the on-screen keyboard
+   does not reliably count as that activation, so the very first utterance is
+   dropped silently and every one after it with it. Every other speaking file in
+   the library starts from a tap (a `38` tile, the `77`'s Czytaj) and so never
+   hit this. A silent zero-volume utterance on the first real touch anywhere on
+   the page unlocks it. */
+var primed = false;
+function primeSpeech(){
+  if(primed) return;
+  primed = true;
+  try{
+    if(!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+    var u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0; u.lang = 'en-GB';
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+['pointerdown','touchend','mousedown'].forEach(function(ev){
+  try{ document.addEventListener(ev, primeSpeech, {passive:true}); }catch(e){
+    document.addEventListener(ev, primeSpeech);
+  }
+});
+
+/* onDone fires exactly once in every case — sound off, no engine, a throw, and
+   the Android builds where `onend` never arrives (§4.7). The board waits on it. */
+function speak(text, onDone){
+  var done = false;
+  function fire(){ if(done) return; done = true; try{ onDone && onDone(); }catch(e){} }
+  if(!soundOn || !text){ setTimeout(fire, 0); return; }
+  var synth = null;
+  try{ synth = window.speechSynthesis || null; }catch(e){ synth = null; }
+  if(!synth || typeof SpeechSynthesisUtterance === 'undefined'){ setTimeout(fire, 0); return; }
+  /* Chrome can leave the queue PAUSED after a cancel, and then every later
+     speak() is accepted and never heard. resume() is a no-op when it is not. */
+  try{ synth.resume(); }catch(e){}
+  /* cancel only when there is something to cancel: calling it from inside an
+     `onend` handler is what puts some Android builds into that stuck state */
+  try{ if(synth.speaking || synth.pending) synth.cancel(); }catch(e){}
+  var u;
+  try{ u = new SpeechSynthesisUtterance(spoken(text)); }catch(e){ setTimeout(fire, 0); return; }
+  u.lang = 'en-GB';
+  speakCount++;
+  var wantMale = (speakCount % 2) === 1;
+  var pick = wantMale ? (maleVoice || englishVoice) : (femaleVoice || maleVoice || englishVoice);
+  try{ if(pick) u.voice = pick; }catch(e){}      /* throws on Android when the list is rebuilt */
+  if(!maleVoice || !femaleVoice) u.pitch = wantMale ? 0.8 : 1.2;
+  /* `onstart` is how we know a reading was actually HEARD. Without it the only
+     thing that ever fires is the safety timer, the exercise carries on as if
+     all were well, and the student is left with a silent page and no clue why. */
+  var started = false;
+  u.onstart = function(){ started = true; silent = 0; noteSilence(); };
+  u.onend = fire;
+  /* `synthesis-failed` arrives in a few milliseconds and is proof on its own
+     that nothing was heard — say so now rather than waiting out the safety
+     timer, which is sized for a reading that might still be running */
+  u.onerror = function(){ if(!started){ silent++; noteSilence(); } fire(); };
+  setTimeout(function(){
+    if(!started){ silent++; noteSilence(); }
+    fire();
+  }, Math.min(8000, 1200 + String(text).length * 90));
+  try{ synth.speak(u); }catch(e){ fire(); }
+}
+
+/* Two readings in a row that never started means the device is not speaking —
+   say so in Polish rather than leaving a silent page looking normal. */
+function noteSilence(){
+  var el = document.getElementById('nosound');
+  if(!el) return;
+  el.hidden = silent < 2;
+}
+
+/* ============================================================
+   READING — one handler for every speaker on the page, so a second
+   tap can never cut the first reading off mid-word (§4.8)
+   ============================================================ */
+var busy = false;
+var marked = null;
+
+function mark(el, on){
+  if(!el) return;
+  var row = el.closest ? el.closest('tr') : null;
+  (row || el).classList.toggle('playing', on);
+}
+function read(el){
+  var text = el.getAttribute('data-say');
+  if(busy || !text) return;
+  busy = true;
+  marked = el;
+  mark(el, true);
+  speak(text, function(){
+    busy = false;
+    mark(marked, false);
+    marked = null;
+  });
+}
+document.addEventListener('click', function(e){
+  var el = e.target.closest ? e.target.closest('[data-say]') : null;
+  if(el) read(el);
+});
+
+/* ============================================================
+   ROZWIŃ / ZWIŃ — the top-level sections only. Leaving the four
+   inner ones (+ − ? short answers) alone means "rozwiń wszystko"
+   does not dump every paradigm on screen at once.
+   ============================================================ */
+var tops = [].slice.call(document.querySelectorAll('.wrap > details'));
+document.getElementById('openAll').addEventListener('click', function(){
+  tops.forEach(function(d){ d.open = true; });
+});
+document.getElementById('shutAll').addEventListener('click', function(){
+  tops.forEach(function(d){ d.open = false; });
+  window.scrollTo(0, 0);
+});
+
+/* exposed for the automated checks only */
+window.__info = {
+  sections: function(){ return tops.length; },
+  says: function(){ return [].slice.call(document.querySelectorAll('[data-say]'))
+    .map(function(e){ return e.getAttribute('data-say'); }); },
+  isBusy: function(){ return busy; },
+  spoken: function(t){ return spoken(t); },
+  readFirst: function(){ document.querySelector('[data-say]').click(); },
+  openAll: function(){ document.getElementById('openAll').click(); },
+  shutAll: function(){ document.getElementById('shutAll').click(); }
+};
+})();
+</script>
+</body>
+</html>
