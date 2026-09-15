@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Link 6 · 1e Everyday English — Zdania twierdzące — ułóż po angielsku</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{overflow-x:hidden;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+.board{max-width:620px;margin:0 auto;padding:12px 8px 28px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:7px solid var(--board-frame);border-radius:14px;box-shadow:0 0 0 3px var(--board-frame-dark),0 14px 30px rgba(0,0,0,.4);padding:12px 9px 20px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:clamp(1.2rem,5.4vw,1.7rem);text-align:center;margin:2px 0 1px;text-shadow:0 2px 0 rgba(0,0,0,.25);line-height:1.25;}
+.subtitle{text-align:center;color:var(--chalk);opacity:.9;font-size:clamp(.84rem,3.6vw,1rem);font-weight:600;margin:0 0 11px;}
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:clamp(.74rem,3.1vw,.85rem);color:var(--chalk);margin:0 2px 9px;}
+.sound-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.sound-toggle input{width:17px;height:17px;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.88rem;border:none;border-radius:20px;
+  padding:11px 22px;min-height:44px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.btn[disabled]{opacity:.4;cursor:default;}
+.actions{display:flex;gap:9px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.done{text-align:center;font-family:var(--font-display);font-size:clamp(1.4rem,6vw,1.9rem);
+  color:var(--pen-green);margin:10px 0 2px;text-shadow:0 2px 0 rgba(255,255,255,.55);}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
+/* ---------- the cue ---------- */
+.cue{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;
+  padding:13px 12px;text-align:center;font-weight:700;line-height:1.35;
+  font-size:clamp(.95rem,4.1vw,1.15rem);margin-bottom:10px;}
+.cue-note{display:block;font-weight:500;color:var(--ink-soft);font-size:clamp(.7rem,3vw,.78rem);margin-top:5px;}
+/* ---------- the line being built ---------- */
+.line{min-height:60px;background:#fffdf7;border:2px dashed var(--card-line);border-radius:11px;
+  padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin-bottom:10px;}
+.line.full{border-style:solid;}
+.line.done{border-color:var(--pen-green);background:#e8f6ec;}
+.line-empty{color:var(--ink-soft);font-size:clamp(.76rem,3.2vw,.85rem);}
+.word{min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  padding:9px 12px;border-radius:9px;font-size:clamp(.86rem,3.6vw,1rem);font-weight:600;
+  background:#fff;border:2px solid var(--board-bg-2);color:var(--ink);cursor:pointer;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:background .13s,border-color .13s;}
+/* §4.2 cascade: a word is green only if it is right AND everything before it is */
+.word.ok{background:#e8f6ec;border-color:var(--pen-green);color:var(--pen-green);}
+.word.miss{animation:shake .32s;}
+.line .word{cursor:pointer;}
+.help-row{display:flex;gap:9px;align-items:center;justify-content:center;margin-bottom:10px;flex-wrap:wrap;}
+.help-note{color:var(--chalk);opacity:.85;font-size:clamp(.72rem,3vw,.8rem);}
+#helpBtn.speaking{background:var(--pen-green);color:var(--chalk);}
+.pool{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;min-height:52px;}
+.pool .word{background:var(--card-bg);}
+.solved-en{margin-top:9px;text-align:center;font-weight:700;color:var(--pen-green);
+  font-size:clamp(.92rem,3.9vw,1.08rem);line-height:1.35;}
+</style>
+</head>
+<body>
+<noscript>
+  <div style="max-width:620px;margin:12px auto;background:#fff3f1;border:1px solid #d1483a;color:#a3392b;
+       border-radius:12px;padding:12px 14px;font:400 .9rem/1.5 system-ui,sans-serif;">
+    <b>To nie jest całe ćwiczenie.</b> Buduje się ono skryptem, a podgląd pliku (WhatsApp, Dysk Google,
+    Pliki, załącznik w poczcie) skryptów nie uruchamia.<br>
+    <b>Android:</b> zapisz plik i otwórz go w przeglądarce (Chrome).<br>
+    <b>iPhone / iPad:</b> podgląd nie wystarczy — wejdź na <b>adres internetowy</b> tego ćwiczenia.
+  </div>
+</noscript>
+<div class="board"><div class="frame">
+  <div class="title">Link 6 · 1e Everyday English</div>
+  <div class="subtitle">Zdania twierdzące — ułóż po angielsku</div>
+  <div class="statusbar">
+    <span id="score">Zdanie 1 / 6</span>
+    <label class="sound-toggle"><input type="checkbox" id="soundChk" checked> dźwięk</label>
+  </div>
+
+  <div class="cue" id="cue">
+    <span id="cuePl"></span>
+    <span class="cue-note">Dotknij słów po kolei. Dotknij słowa w zdaniu, aby je cofnąć.</span>
+  </div>
+
+  <div class="help-row">
+    <button class="btn secondary" id="helpBtn">Pomoc</button>
+    <span class="help-note">przeczyta zdanie po angielsku</span>
+  </div>
+
+  <div class="line" id="line"></div>
+  <div class="solved-en" id="solvedEn" hidden></div>
+  <div class="pool" id="pool"></div>
+
+  <div class="done" id="done" hidden>Brawo!</div>
+  <div class="actions"><button class="btn secondary" id="againBtn">Od nowa</button></div>
+</div></div>
+<script>
+/* Rules and Obligations, Together 5 Unit 1 — Word Scramble (08).
+   One sentence at a time: the Polish is shown, the English words arrive
+   scrambled, and the student taps them into order. Tapping a word already in
+   the line sends it back, so a wrong guess is undone in one tap and there is
+   no Clear button to hunt for.
+
+   The FULL STOP is not on a tile. Left on the last word it would announce
+   which word goes last, and with every sentence starting with "We" that would
+   give away both ends — "We mustn't be late." would be down to two real
+   choices. It is drawn after the line once the sentence is complete instead.
+
+   Correctness follows the §4.2 cascade: a word turns green only if it is right
+   for its slot AND every word before it is right too, so progress shows
+   left-to-right and the sentence cannot be solved out of order. */
+/* there is / there are with a, an and some. Every sentence opens with
+   "There", which is uniform across the set and so gives nothing away; what the
+   student has to place is the is/are and the article that follows it. */
+const ITEMS = [
+  {en:'Sure, you can borrow my tablet.', pl:'Pewnie, możesz pożyczyć mój tablet.'},
+  {en:'Of course you can sit here.', pl:'Oczywiście, możesz tu usiąść.'},
+  {en:'No problem, I can help you.', pl:'Nie ma problemu, mogę ci pomóc.'},
+  {en:'Go right ahead and use my dictionary.', pl:'Proszę bardzo, skorzystaj z mojego słownika.'},
+  {en:'You can tag along with us.', pl:'Możesz się z nami zabrać.'},
+  {en:'I\'m getting on very well, thanks.', pl:'Idzie mi bardzo dobrze, dzięki.'}
+];
+/* ---------------- voices (§5.4: British English, male first) ---------------- */
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+let speakCount = 0;
+/* `onDone` fires when the reading has actually finished, so the exercise can
+   wait for it instead of guessing a delay. Called exactly once and always —
+   sound off, no speech support, and the Android builds where `onend` never
+   arrives (hence the safety timer), otherwise the exercise would hang. */
+function speak(text, onDone){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 300);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-GB';
+  const odd = (++speakCount % 2 === 1);
+  /* Setting `voice` throws if the object is not a live SpeechSynthesisVoice —
+     which happens on Android when the voice list is rebuilt under us. Losing
+     the chosen voice is survivable; losing the reading is not, because the
+     exercise waits for it. */
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* stay on the device default */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 0.95;
+  u.onend = done;
+  u.onerror = done;
+  /* Safety net for the Android builds where `onend` never arrives. Scaled to
+     the text rather than a flat number: a freeze the length of a long sentence
+     is survivable, twelve seconds on every word is not. */
+  setTimeout(done, Math.min(8000, 1200 + text.length * 90));
+  try { speechSynthesis.speak(u); } catch(e){ done(); }
+}
+function shuffled(n){
+  const a = [...Array(n).keys()];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+const cuePlEl = document.getElementById('cuePl');
+const helpBtn = document.getElementById('helpBtn');
+const solvedEl = document.getElementById('solvedEn');
+const lineEl  = document.getElementById('line');
+const poolEl  = document.getElementById('pool');
+const scoreEl = document.getElementById('score');
+const doneEl  = document.getElementById('done');
+
+let order = [], step = 0;
+let target = [];      // the words in the right order, without the full stop
+let bag = [];         // {word, used} in the scrambled order they are offered
+let placed = [];      // indices into bag, in the order the student chose them
+let busy = false;
+
+/* Tiles carry no sentence punctuation — not just no full stop at the end. A
+   "!" left on a word announces where a clause finishes ("Hurry up!" tells you
+   the first half stops there), and with these sentences that is most of the
+   puzzle. Apostrophes stay: "We're" is one word. The real sentence, with all
+   its punctuation, is shown once the order is right. */
+const toWords = s => s.replace(/[.!?,;:]/g, '').split(/\s+/).filter(Boolean);
+
+function start(){
+  order = shuffled(ITEMS.length);
+  step = 0;
+  doneEl.hidden = true;
+  nextSentence();
+}
+
+function nextSentence(){
+  if(step >= order.length){ finish(); return; }
+  busy = false;
+  const it = ITEMS[order[step]];
+  cuePlEl.textContent = it.pl;
+  target = toWords(it.en);
+  const mix = shuffled(target.length);
+  // never hand back the sentence already in order
+  if(target.length > 2 && mix.every((v,i)=> v === i)) mix.reverse();
+  bag = mix.map(i => ({ word: target[i] }));
+  placed = [];
+  scoreEl.textContent = 'Zdanie ' + (step + 1) + ' / ' + ITEMS.length;
+  helpBtn.disabled = false;
+  helpBtn.textContent = 'Pomoc';
+  helpBtn.classList.remove('speaking');
+  render();
+}
+
+/* Pomoc reads the sentence the student is trying to build. Hearing it is the
+   help — the words are already on screen, so nothing is given away that the
+   tiles do not already show, and it is the same sentence read back once the
+   order is right. */
+helpBtn.addEventListener('click', ()=>{
+  if(busy || step >= order.length) return;
+  busy = true;
+  helpBtn.classList.add('speaking');
+  helpBtn.textContent = 'Czytam…';
+  speak(ITEMS[order[step]].en, ()=>{
+    busy = false;
+    helpBtn.classList.remove('speaking');
+    helpBtn.textContent = 'Pomoc jeszcze raz';
+  });
+});
+
+/* green only while the prefix is right — the §4.2 cascade */
+function cascade(){
+  let prefixOk = true;
+  return placed.map((b,i)=>{
+    const matches = bag[b].word === target[i];
+    const isCorrect = prefixOk && matches;
+    prefixOk = prefixOk && matches;
+    return isCorrect;
+  });
+}
+
+function render(){
+  const flags = cascade();
+  lineEl.innerHTML = '';
+  lineEl.classList.toggle('full', placed.length === target.length);
+  if(!placed.length){
+    const e = document.createElement('span');
+    e.className = 'line-empty';
+    e.textContent = 'Tutaj powstanie zdanie';
+    lineEl.appendChild(e);
+  }
+  placed.forEach((b,i)=>{
+    const w = document.createElement('span');
+    w.className = 'word' + (flags[i] ? ' ok' : '');
+    w.textContent = bag[b].word;
+    w.addEventListener('click', ()=>{ if(busy) return; placed.splice(i,1); render(); });
+    lineEl.appendChild(w);
+  });
+  const solved = placed.length === target.length && flags.every(Boolean);
+  lineEl.classList.toggle('done', solved);
+  solvedEl.hidden = !solved;
+  if(solved) solvedEl.textContent = ITEMS[order[step]].en;   // with its real punctuation
+
+  poolEl.innerHTML = '';
+  bag.forEach((b,i)=>{
+    if(placed.includes(i)) return;
+    const w = document.createElement('span');
+    w.className = 'word';
+    w.textContent = b.word;
+    w.addEventListener('click', ()=>{ if(busy) return; placed.push(i); render(); });
+    poolEl.appendChild(w);
+  });
+
+  if(solved) complete();
+}
+
+function complete(){
+  busy = true;
+  helpBtn.disabled = true;
+  helpBtn.textContent = 'Czytam…';
+  const it = ITEMS[order[step]];
+  step++;
+  // read the finished sentence, and only move on once the reading has ended
+  speak(it.en, ()=> setTimeout(nextSentence, 400));
+}
+
+function finish(){
+  helpBtn.disabled = true;
+  helpBtn.textContent = 'Pomoc';
+  solvedEl.hidden = true;
+  cuePlEl.textContent = 'Wszystkie zdania ułożone.';
+  lineEl.innerHTML = '';
+  poolEl.innerHTML = '';
+  scoreEl.textContent = 'Zdanie ' + ITEMS.length + ' / ' + ITEMS.length;
+  doneEl.hidden = false;
+}
+
+document.getElementById('againBtn').addEventListener('click', start);
+start();
+</script>
+</body>
+</html>
