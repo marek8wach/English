@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Link 6 · U1 · Present Simple / Continuous — dialog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{overflow-x:hidden;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+.board{max-width:620px;margin:0 auto;padding:12px 8px 28px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:7px solid var(--board-frame);border-radius:14px;box-shadow:0 0 0 3px var(--board-frame-dark),0 14px 30px rgba(0,0,0,.4);padding:12px 9px 20px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:clamp(1.2rem,5.4vw,1.7rem);text-align:center;margin:2px 0 1px;text-shadow:0 2px 0 rgba(0,0,0,.25);line-height:1.25;}
+.subtitle{text-align:center;color:var(--chalk);opacity:.9;font-size:clamp(.84rem,3.6vw,1rem);font-weight:600;margin:0 0 11px;}
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:clamp(.74rem,3.1vw,.85rem);color:var(--chalk);margin:0 2px 9px;}
+.sound-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.sound-toggle input{width:17px;height:17px;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.88rem;border:none;border-radius:20px;
+  padding:11px 22px;min-height:44px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.btn[disabled]{opacity:.4;cursor:default;}
+.actions{display:flex;gap:9px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.done{text-align:center;font-family:var(--font-display);font-size:clamp(1.4rem,6vw,1.9rem);
+  color:var(--pen-green);margin:10px 0 2px;text-shadow:0 2px 0 rgba(255,255,255,.55);}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
+.talk{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;
+  padding:11px 10px;margin-bottom:11px;display:flex;flex-direction:column;gap:9px;}
+.turn{display:flex;flex-direction:column;max-width:88%;}
+.turn.b{align-self:flex-end;align-items:flex-end;}
+.who{font-size:clamp(.66rem,2.8vw,.74rem);color:var(--ink-soft);margin:0 6px 2px;font-weight:600;}
+.bubble{padding:9px 12px;border-radius:14px;line-height:1.45;
+  font-size:clamp(.88rem,3.7vw,1.02rem);background:#fff;border:1px solid var(--card-line);}
+.turn.a .bubble{border-bottom-left-radius:5px;}
+.turn.b .bubble{border-bottom-right-radius:5px;background:#f3ead9;}
+.turn.now .bubble{border-color:var(--board-bg-2);border-width:2px;font-weight:600;}
+.turn.done .bubble .word{color:var(--pen-green);font-weight:700;}
+.blank{display:inline-block;min-width:4.4em;border-bottom:2px solid var(--board-bg-2);
+  text-align:center;color:var(--ink-soft);font-family:var(--font-mono);}
+.tiles{display:flex;gap:9px;flex-wrap:wrap;}
+.tile{flex:1 1 0;min-width:130px;min-height:52px;display:flex;align-items:center;justify-content:center;
+  text-align:center;font-family:var(--font-mono);font-size:clamp(.95rem,4vw,1.1rem);font-weight:600;
+  background:var(--card-bg);border:2px solid var(--board-bg-2);border-radius:10px;cursor:pointer;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:background .14s,border-color .14s;}
+.tile.wrong{animation:wrongpick .62s ease-in-out;}
+@keyframes wrongpick{
+  0%{transform:translateX(0);background:var(--card-bg);border-color:var(--board-bg-2);color:var(--ink);}
+  12%{transform:translateX(-7px);background:#fdd9d3;border-color:var(--red-pen);color:var(--red-pen-dark);}
+  30%{transform:translateX(7px);background:var(--card-bg);border-color:var(--board-bg-2);color:var(--ink);}
+  48%{transform:translateX(-6px);background:#fdd9d3;border-color:var(--red-pen);color:var(--red-pen-dark);}
+  66%{transform:translateX(6px);background:var(--card-bg);border-color:var(--board-bg-2);color:var(--ink);}
+  82%{transform:translateX(-3px);background:#fdd9d3;border-color:var(--red-pen);color:var(--red-pen-dark);}
+  100%{transform:translateX(0);background:var(--card-bg);border-color:var(--board-bg-2);color:var(--ink);}
+}
+.reading-note{color:var(--chalk);opacity:.85;}
+</style>
+</head>
+<body>
+<div class="board"><div class="frame">
+  <div class="title">Ola i Ben</div>
+  <div class="subtitle">Present Simple czy Present Continuous?</div>
+  <div class="statusbar">
+    <span id="score">Zdanie 1 / 10</span>
+    <span id="reading" class="reading-note" hidden>Czytam…</span>
+    <label class="sound-toggle"><input type="checkbox" id="soundChk" checked> dźwięk</label>
+  </div>
+
+  <div class="talk" id="talk"></div>
+  <div class="tiles" id="tiles"></div>
+
+  <div class="done" id="done" hidden>Brawo!</div>
+  <div class="actions"><button class="btn secondary" id="againBtn">Od nowa</button></div>
+</div></div>
+<script>
+/* Amy i Tom — Dialogue Completion (32).
+   The conversation builds up a turn at a time: only the turns already answered
+   and the one being worked on are on screen, so nothing later is given away.
+   Each completed turn is read aloud and the next appears when that reading has
+   ended.
+
+   Amy is read by the female voice and Tom by the male one — a deliberate
+   departure from the odd/even alternation of §5.4, because in a dialogue the
+   voice belongs to the speaker, not to the line number. With only one gendered
+   voice, or none, it falls back to the same two pitches §5.4 uses. */
+/* One conversation, ten turns, one gap each. Amy always asks and Tom always
+   answers, so the gaps alternate by construction: a question needs do/does,
+   an answer needs the verb with or without -s. That pattern is the lesson —
+   the student meets it five times without it ever being spelled out.
+   `before` is empty where the gap opens the turn, and those tiles carry the
+   capital. */
+const WHO = {a:'Ola', b:'Ben'};
+const ITEMS = [
+  {who:"a", before:"Hi Ben! What", after:"right now?", right:"are you doing", wrong:"do you do",
+   en:"Hi Ben! What are you doing right now?"},
+  {who:"b", before:"I", after:"at my cousin's house this week.", right:"am staying", wrong:"stay",
+   en:"I am staying at my cousin's house this week."},
+  {who:"a", before:"", after:"there every summer?", right:"Do you go", wrong:"Are you going",
+   en:"Do you go there every summer?"},
+  {who:"b", before:"Yes, we", after:"two weeks there every July.", right:"spend", wrong:"are spending",
+   en:"Yes, we spend two weeks there every July."},
+  {who:"a", before:"I can hear a lot of noise. What", after:"at your cousin’s house at the moment?", right:"is happening", wrong:"happens",
+   en:"I can hear a lot of noise. What is happening at your cousin’s house at the moment?"},
+  {who:"b", before:"That's my uncle. He", after:"his keys every morning!", right:"loses", wrong:"is losing",
+   en:"That's my uncle. He loses his keys every morning!"},
+  {who:"a", before:"I think I", after:"him. Has he got a beard?", right:"remember", wrong:"am remembering",
+   en:"I think I remember him. Has he got a beard?"},
+  {who:"b", before:"Yes, he has. And today he", after:"a very weird hat.", right:"is wearing", wrong:"wears",
+   en:"Yes, he has. And today he is wearing a very weird hat."},
+  {who:"a", before:"", after:"cards with them in the evenings?", right:"Do you play", wrong:"Are you playing",
+   en:"Do you play cards with them in the evenings?"},
+  {who:"b", before:"Yes, but right now my cousin", after:"a film, so I can talk.", right:"is watching", wrong:"watches",
+   en:"Yes, but right now my cousin is watching a film, so I can talk."}
+];
+/* ---------------- voices (§5.4: British English, male first) ---------------- */
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+let speakCount = 0;
+/* `onDone` fires when the reading has actually finished, so the exercise can
+   wait for it instead of guessing a delay. Called exactly once and always —
+   sound off, no speech support, and the Android builds where `onend` never
+   arrives (hence the safety timer), otherwise the exercise would hang. */
+function speak(text, onDone){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 300);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-GB';
+  const odd = (++speakCount % 2 === 1);
+  /* Setting `voice` throws if the object is not a live SpeechSynthesisVoice —
+     which happens on Android when the voice list is rebuilt under us. Losing
+     the chosen voice is survivable; losing the reading is not, because the
+     exercise waits for it. */
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* stay on the device default */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 1.2;
+  u.onend = done;
+  u.onerror = done;
+  /* Safety net for the Android builds where `onend` never arrives. Scaled to
+     the text rather than a flat number: a freeze the length of a long sentence
+     is survivable, twelve seconds on every word is not. */
+  setTimeout(done, Math.min(8000, 1200 + text.length * 90));
+  try { speechSynthesis.speak(u); } catch(e){ done(); }
+}
+function shuffled(n){
+  const a = [...Array(n).keys()];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+const talkEl  = document.getElementById('talk');
+const tilesEl = document.getElementById('tiles');
+const scoreEl = document.getElementById('score');
+const doneEl  = document.getElementById('done');
+const readingEl = document.getElementById('reading');
+
+let step = 0, busy = false;
+
+function buzz(){
+  try { if(navigator.vibrate) navigator.vibrate([35, 45, 35]); } catch(e){}
+}
+
+/* speak(), but the voice follows the speaker rather than the line number. */
+function speakAs(who, text, onDone){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 300);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-GB';
+  const wantMale = (who === 'b');
+  /* Setting `voice` throws if the object is not a live SpeechSynthesisVoice —
+     which happens on Android when the voice list is rebuilt under us. Losing
+     the chosen voice is survivable; losing the reading is not, because the
+     dialogue waits for it before showing the next turn. */
+  try {
+    if(maleVoice && femaleVoice){ u.voice = wantMale ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+  } catch(e){ /* stay on the device default */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = wantMale ? 0.8 : 1.2;   // §5.4's two values
+  u.onend = done;
+  u.onerror = done;
+  setTimeout(done, Math.min(8000, 1200 + text.length * 90));
+  try { speechSynthesis.speak(u); } catch(e){ done(); }
+}
+
+function start(){
+  step = 0; busy = false;
+  doneEl.hidden = true;
+  readingEl.hidden = true;
+  render();
+}
+
+function render(){
+  talkEl.innerHTML = '';
+  // only what has been answered, plus the turn in hand
+  for(let i = 0; i <= step && i < ITEMS.length; i++){
+    const it = ITEMS[i];
+    const turn = document.createElement('div');
+    turn.className = 'turn ' + it.who + (i === step ? ' now' : ' done');
+    turn.dataset.i = i;
+
+    const who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = WHO[it.who];
+    turn.appendChild(who);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    if(i === step){
+      const blank = document.createElement('span');
+      blank.className = 'blank';
+      blank.id = 'blank';
+      blank.textContent = '?';
+      if(it.before) bubble.append(it.before + ' ');
+      bubble.append(blank, ' ' + it.after);
+    } else {
+      const w = document.createElement('span');
+      w.className = 'word';
+      w.textContent = it.right;
+      if(it.before) bubble.append(it.before + ' ');
+      bubble.append(w, ' ' + it.after);
+    }
+    turn.appendChild(bubble);
+    talkEl.appendChild(turn);
+  }
+
+  tilesEl.innerHTML = '';
+  if(step >= ITEMS.length) return;
+  const it = ITEMS[step];
+  scoreEl.textContent = 'Zdanie ' + (step + 1) + ' / ' + ITEMS.length;
+  // which side holds the right answer is drawn fresh each turn
+  const pair = Math.random() < 0.5 ? [it.right, it.wrong] : [it.wrong, it.right];
+  pair.forEach(word=>{
+    const t = document.createElement('div');
+    t.className = 'tile';
+    t.textContent = word;
+    t.addEventListener('click', ()=> pick(t, word, it));
+    tilesEl.appendChild(t);
+  });
+  const now = talkEl.querySelector('.turn.now');
+  if(now) now.scrollIntoView({ block:'nearest' });
+}
+
+function pick(tile, word, it){
+  if(busy) return;
+  if(word !== it.right){
+    buzz();
+    tile.classList.remove('wrong'); void tile.offsetWidth; tile.classList.add('wrong');
+    setTimeout(()=> tile.classList.remove('wrong'), 700);
+    return;
+  }
+  busy = true;
+  // fill the turn in place, then read it in its speaker's voice
+  const blank = document.getElementById('blank');
+  if(blank){ blank.outerHTML = '<span class="word">' + word + '</span>'; }
+  const turn = talkEl.querySelector('.turn.now');
+  if(turn){ turn.classList.remove('now'); turn.classList.add('done'); }
+  tilesEl.innerHTML = '';
+  readingEl.hidden = false;
+  speakAs(it.who, it.en, ()=>{
+    readingEl.hidden = true;
+    step++;
+    busy = false;
+    if(step >= ITEMS.length){ finish(); return; }
+    setTimeout(render, 350);
+  });
+}
+
+function finish(){
+  render();
+  tilesEl.innerHTML = '';
+  scoreEl.textContent = 'Zdanie ' + ITEMS.length + ' / ' + ITEMS.length;
+  doneEl.hidden = false;
+  doneEl.textContent = 'Brawo! Cały dialog.';
+}
+
+document.getElementById('againBtn').addEventListener('click', start);
+start();
+</script>
+</body>
+</html>
