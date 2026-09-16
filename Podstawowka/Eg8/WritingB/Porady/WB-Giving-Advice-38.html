@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Udzielanie porad — znajdź pary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{overflow-x:hidden;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+/* Phone in portrait is the design width; the tablet gets the same layout with
+   room to spare. */
+.board{max-width:620px;margin:0 auto;padding:12px 8px 28px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:7px solid var(--board-frame);border-radius:14px;box-shadow:0 0 0 3px var(--board-frame-dark),0 14px 30px rgba(0,0,0,.4);padding:12px 9px 20px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:clamp(1.25rem,5.6vw,1.7rem);text-align:center;margin:2px 0 1px;text-shadow:0 2px 0 rgba(0,0,0,.25);line-height:1.25;}
+.subtitle{text-align:center;color:var(--chalk);opacity:.9;font-size:clamp(.86rem,3.7vw,1rem);font-weight:600;margin:0 0 11px;}
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:clamp(.76rem,3.2vw,.85rem);color:var(--chalk);margin:0 2px 9px;}
+.reading-note{color:var(--chalk);opacity:.85;}
+.sound-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.sound-toggle input{width:17px;height:17px;}
+
+/* ---------- the two columns ---------- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.cell{display:flex;align-items:center;justify-content:center;text-align:center;
+  min-height:52px;padding:8px 6px;border-radius:10px;font-size:clamp(.72rem,3vw,.86rem);
+  line-height:1.25;word-break:break-word;hyphens:auto;font-weight:600;
+  background:var(--card-bg);border:2px solid var(--board-bg-2);color:var(--ink);
+  cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;
+  transition:background .15s,border-color .15s,transform .12s;position:relative;}
+.cell.sel{border-color:var(--red-pen);background:#fdf1ee;transform:scale(1.04);box-shadow:0 3px 10px rgba(0,0,0,.18);}
+.cell.dragging{opacity:.92;box-shadow:0 8px 20px rgba(0,0,0,.32);z-index:20;}
+.cell.dragover{border-color:var(--red-pen);border-style:dashed;}
+.cell.miss{animation:shake .32s;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+/* the pair has just been brought into line with each other — a short pulse so
+   the eye follows the word that moved */
+.cell.landed{animation:landed .45s ease-out;}
+@keyframes landed{0%{transform:scale(.86);}55%{transform:scale(1.07);}100%{transform:scale(1);}}
+/* the one piece of feedback the exercise gives: a found pair turns green */
+.cell.ok{background:#e8f6ec;border-color:var(--pen-green);color:var(--pen-green);cursor:default;box-shadow:none;transform:none;}
+
+.actions{display:flex;gap:9px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.88rem;border:none;border-radius:20px;
+  padding:11px 22px;min-height:44px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);
+  display:inline-flex;align-items:center;justify-content:center;}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.done{text-align:center;font-family:var(--font-display);font-size:clamp(1.4rem,6vw,1.9rem);
+  color:var(--pen-green);margin-top:12px;text-shadow:0 2px 0 rgba(255,255,255,.55);}
+</style>
+</head>
+<body>
+<div class="board"><div class="frame">
+  <div class="title">Udzielanie porad</div>
+  <div class="subtitle">Znajdź pary</div>
+
+  <div class="statusbar">
+    <span id="reading" class="reading-note" hidden>Czytam…</span>
+    <span id="score">Dopasowane: 0 / 7</span>
+    <label class="sound-toggle"><input type="checkbox" id="soundChk" checked> dźwięk</label>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="done" id="done" hidden>Brawo!</div>
+
+  <div class="actions">
+    <button class="btn secondary" id="againBtn">Od nowa</button>
+  </div>
+</div></div>
+
+<script>
+/* School subjects, Together 5 Unit 1. Miejsca w szkole 2. English is the left-hand column, Polish the right.
+   The student pairs a word with its translation by tapping one from each
+   column — in EITHER order, Polish first or English first — or by dragging one
+   onto the other. Nothing is reordered; position carries no meaning. */
+const MODE = 'EF';           // 'PF' = Polish on the left, 'EF' = English on the left
+const PAIRS = [
+  {en:"I think you should/shouldn't ...", pl:"Myślę, że powinieneś / nie powinieneś..."},
+  {en:"Another good idea would be to ...", pl:"Innym dobrym pomysłem byłoby..."},
+  {en:"I (would) suggest ...",            pl:"Sugeruję/Sugerowałbym..."},
+  {en:"What/How about ...?",              pl:"A może by tak...?"},
+  {en:"I need some advice about ...",     pl:"Potrzebuję rady w sprawie..."},
+  {en:"What do you think I should do?",   pl:"Co myślisz, że powinienem zrobić?"},
+  {en:"What do you think about ...?",     pl:"Co myślisz o...?"}
+];
+/* "PE" is said as its two letters, not as a word. */
+const SPOKEN = {
+  "I think you should/shouldn't ...": "I think you should talk to your parents. I think you shouldn't worry.",
+  "Another good idea would be to ...": "Another good idea would be to ask your teacher.",
+  "I (would) suggest ...": "I suggest asking for help. I would suggest asking for help.",
+  "What/How about ...?": "What about going for a walk? How about going for a walk?",
+  "I need some advice about ...": "I need some advice about my exams.",
+  "What do you think about ...?": "What do you think about my idea?"
+};
+/* A trailing ellipsis marks a sentence the student finishes; it is never
+   said aloud and never has to be typed. */
+const sayable = t => String(t).replace(/\s*\.{3}\s*$/, '');
+const spoken = w => sayable(SPOKEN[w] || w);
+/* A word can be read more slowly than the rest when a consonant cluster would
+   otherwise be swallowed. "maths" ends in /θs/, which the engines run together
+   at normal speed until the "th" all but disappears. The Web Speech API gives
+   no control below the word, so rate is the only lever there is — lower this
+   number if the "th" still is not clear enough on the tablet. */
+const RATE = {};     // e.g. {'maths':0.55} for a cluster the engine swallows
+
+/* ---------------- voices (§5.4: male first) ---------------- */
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+let speakCount = 0;
+/* `onDone` fires when the reading has actually finished, so the board can be
+   held until then instead of guessing a delay. Called exactly once and always —
+   sound off, no speech support, and the Android builds where `onend` never
+   arrives (hence the safety timer), or the board would stay frozen. */
+function speak(englishWord, onDone){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 250);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(spoken(englishWord));
+  u.lang='en-GB';
+  u.rate = RATE[englishWord] || 1;
+  const odd = (++speakCount % 2 === 1);
+  /* Setting `voice` throws if the object is not a live SpeechSynthesisVoice —
+     which happens on Android when the voice list is rebuilt under us. Losing
+     the chosen voice is survivable; losing the reading is not, because the
+     exercise waits for it. */
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* stay on the device default */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 1.2;
+  u.onend = done;
+  u.onerror = done;
+  /* Safety net for the Android builds where `onend` never arrives. Scaled to
+     the text rather than a flat number: a freeze the length of a long sentence
+     is survivable, twelve seconds on every word is not. */
+  setTimeout(done, Math.min(8000, 1200 + spoken(englishWord).length * 90));
+  try { speechSynthesis.speak(u); } catch(e){ done(); }
+}
+
+/* The board is held while anything is being read, so a tap cannot cut the
+   reading short — hearing the word is the point of getting the pair right. */
+let busy = false;
+function hold(englishWord, after){
+  busy = true;
+  readingEl.hidden = false;
+  speak(englishWord, ()=>{
+    busy = false;
+    readingEl.hidden = true;
+    if(after) after();
+  });
+}
+/* Only ever the English side is read aloud. Reading a Polish word would hand
+   the student the answer they are being asked to find. */
+const ENGLISH_SIDE = MODE === 'PF' ? 'R' : 'L';
+/* A slashed run has nowhere legal to break, and word-break then snaps it
+   mid-word. A zero-width space after each slash fixes that. Written as the
+   escape, never as an invisible character in the source (§4.8); drawn text
+   only, never anything that reaches the voice. */
+const breakable = t => String(t).replace(/\//g, '/\u200b');
+const textFor = (side, pairIndex) =>
+  (side === ENGLISH_SIDE) ? PAIRS[pairIndex].en : PAIRS[pairIndex].pl;
+
+const gridEl  = document.getElementById('grid');
+const scoreEl = document.getElementById('score');
+const doneEl  = document.getElementById('done');
+const readingEl = document.getElementById('reading');
+const DRAG_THRESHOLD = 8;
+
+let left = [], right = [];          // each holds pair indices, shuffled independently
+let matched = new Set();
+let sel = { L:null, R:null };       // the chosen row on each side, or null
+
+function shuffled(){
+  const a = PAIRS.map((_,i)=>i);
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function deal(){
+  // shuffle both columns, and keep no pair sitting side by side on the same row
+  do { left = shuffled(); right = shuffled(); }
+  while(left.some((v,i)=> v === right[i]));
+  matched = new Set();
+  sel = { L:null, R:null };
+}
+
+function build(){
+  busy = false;
+  readingEl.hidden = true;
+  gridEl.innerHTML = '';
+  doneEl.hidden = true;
+  for(let row=0; row<PAIRS.length; row++){
+    ['L','R'].forEach(side=>{
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.side = side;
+      cell.dataset.row = row;
+      attachCell(cell);
+      gridEl.appendChild(cell);
+    });
+  }
+  render();
+}
+const cellAt = (side,row) => gridEl.querySelector('.cell[data-side="'+side+'"][data-row="'+row+'"]');
+const pairAt = (side,row) => (side === 'L' ? left : right)[row];
+
+function render(){
+  gridEl.querySelectorAll('.cell').forEach(cell=>{
+    const side = cell.dataset.side, row = +cell.dataset.row;
+    const p = pairAt(side, row);
+    cell.textContent = breakable(textFor(side, p));
+    cell.dataset.pair = p;
+    cell.classList.toggle('ok', matched.has(p));
+    cell.classList.toggle('sel', sel[side] === row && !matched.has(p));
+  });
+  scoreEl.textContent = 'Dopasowane: ' + matched.size + ' / ' + PAIRS.length;
+  if(matched.size === PAIRS.length){
+    doneEl.hidden = false;
+    doneEl.textContent = 'Brawo! Wszystko dopasowane.';
+  }
+}
+
+const isDone = (side,row) => matched.has(pairAt(side,row));
+
+function missShake(cells){
+  cells.forEach(c=>{ if(c){ c.classList.remove('miss'); void c.offsetWidth; c.classList.add('miss'); } });
+  setTimeout(()=> cells.forEach(c=> c && c.classList.remove('miss')), 400);
+}
+
+/* One place where a pairing is judged, whether it came from two taps or from a
+   drag. Order does not matter: the two sides are named, not sequenced. */
+function tryPair(rowL, rowR){
+  const a = pairAt('L', rowL), b = pairAt('R', rowR);
+  const cells = [cellAt('L',rowL), cellAt('R',rowR)];
+  if(a === b){
+    /* Bring the two halves into the same row so a found pair ends up side by
+       side. Only the right column moves, and only ever its unmatched cells:
+       rowL cannot already be a finished row, because the word we just matched
+       was sitting there unmatched a moment ago. So no completed pair is ever
+       pulled apart by a later one. */
+    if(rowL !== rowR){ const t = right[rowL]; right[rowL] = right[rowR]; right[rowR] = t; }
+    matched.add(a);
+    sel = { L:null, R:null };
+    render();
+    [cellAt('L',rowL), cellAt('R',rowL)].forEach(c=>{
+      if(!c) return;
+      c.classList.remove('landed'); void c.offsetWidth; c.classList.add('landed');
+      setTimeout(()=> c.classList.remove('landed'), 500);
+    });
+    hold(PAIRS[a].en);
+    return true;
+  }
+  missShake(cells);
+  sel = { L:null, R:null };
+  render();
+  return false;
+}
+
+function choose(side, row){
+  if(busy) return;
+  // a finished pair is locked, but an English word can still be tapped to hear
+  // it again — the pair is already solved, so replaying gives nothing away
+  if(isDone(side,row)){
+    if(side === ENGLISH_SIDE) hold(PAIRS[pairAt(side,row)].en);
+    return;
+  }
+  if(sel[side] === row){ sel[side] = null; render(); return; }   // tap again to let go
+  sel[side] = row;
+  if(side === ENGLISH_SIDE) speak(PAIRS[pairAt(side,row)].en);
+  const other = side === 'L' ? 'R' : 'L';
+  if(sel[other] === null){ render(); return; }
+  const rowL = side === 'L' ? row : sel.L;
+  const rowR = side === 'R' ? row : sel.R;
+  tryPair(rowL, rowR);
+}
+
+/* Pointer Events, not the HTML5 drag-and-drop API: native dragstart/drop never
+   fire for touch on Android Chrome, which is where these files are used. A
+   pointer that goes down and up without passing DRAG_THRESHOLD is a tap. */
+function attachCell(cell){
+  let startX=0, startY=0, dragging=false, moved=false;
+
+  function targetAt(x,y){
+    cell.style.pointerEvents = 'none';
+    const el = document.elementFromPoint(x,y);
+    cell.style.pointerEvents = '';
+    return el ? el.closest('.cell') : null;
+  }
+  function resetVisuals(){
+    cell.classList.remove('dragging');
+    cell.style.transform = '';
+    gridEl.querySelectorAll('.cell.dragover').forEach(c=>c.classList.remove('dragover'));
+  }
+  const usable = c => c && c !== cell && !matched.has(+c.dataset.pair) && c.dataset.side !== cell.dataset.side;
+
+  cell.addEventListener('pointerdown', e=>{
+    if(busy) return;
+    if(isDone(cell.dataset.side, +cell.dataset.row)) return;
+    startX = e.clientX; startY = e.clientY;
+    dragging = false; moved = false;
+    cell.setPointerCapture(e.pointerId);
+  });
+  cell.addEventListener('pointermove', e=>{
+    if(busy) return;
+    if(isDone(cell.dataset.side, +cell.dataset.row)) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if(!dragging){
+      if(Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+      dragging = true; moved = true;
+      cell.classList.add('dragging');
+      if(cell.dataset.side === ENGLISH_SIDE) speak(PAIRS[+cell.dataset.pair].en);
+    }
+    cell.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    gridEl.querySelectorAll('.cell.dragover').forEach(c=>c.classList.remove('dragover'));
+    const t = targetAt(e.clientX, e.clientY);
+    if(usable(t)) t.classList.add('dragover');
+  });
+  cell.addEventListener('pointerup', e=>{
+    if(busy){ resetVisuals(); return; }
+    if(isDone(cell.dataset.side, +cell.dataset.row)){
+      choose(cell.dataset.side, +cell.dataset.row);   // replays a matched English word
+      return;
+    }
+    const t = dragging ? targetAt(e.clientX, e.clientY) : null;
+    resetVisuals();
+    if(!moved){ choose(cell.dataset.side, +cell.dataset.row); return; }
+    dragging = false;
+    if(usable(t)){
+      // dropping one word on the other is the same pairing, whichever way round
+      const rowL = cell.dataset.side === 'L' ? +cell.dataset.row : +t.dataset.row;
+      const rowR = cell.dataset.side === 'R' ? +cell.dataset.row : +t.dataset.row;
+      tryPair(rowL, rowR);
+    }
+  });
+  cell.addEventListener('pointercancel', ()=>{ dragging = false; resetVisuals(); });
+}
+
+document.getElementById('againBtn').addEventListener('click', ()=>{ deal(); build(); });
+
+deal();
+build();
+</script>
+</body>
+</html>
