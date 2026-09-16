@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Egzamin 8-klasisty Reakcje (czerwiec 2024)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{overflow-x:hidden;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+.board{max-width:620px;margin:0 auto;padding:12px 8px 28px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:7px solid var(--board-frame);border-radius:14px;box-shadow:0 0 0 3px var(--board-frame-dark),0 14px 30px rgba(0,0,0,.4);padding:12px 9px 20px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:clamp(1.2rem,5.4vw,1.7rem);text-align:center;margin:2px 0 1px;text-shadow:0 2px 0 rgba(0,0,0,.25);line-height:1.25;}
+.subtitle{text-align:center;color:var(--chalk);opacity:.9;font-size:clamp(.84rem,3.6vw,1rem);font-weight:600;margin:0 0 11px;}
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:clamp(.74rem,3.1vw,.85rem);color:var(--chalk);margin:0 2px 9px;}
+.sound-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.sound-toggle input{width:17px;height:17px;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.88rem;border:none;border-radius:20px;
+  padding:11px 22px;min-height:44px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.actions{display:flex;gap:9px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.done{text-align:center;font-family:var(--font-display);font-size:clamp(1.4rem,6vw,1.9rem);
+  color:var(--pen-green);margin:10px 0 2px;text-shadow:0 2px 0 rgba(255,255,255,.55);}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
+/* ---------- the four utterances: heard, never shown ---------- */
+.panel{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;padding:11px 10px;margin-bottom:11px;}
+.sent-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.sent{min-height:52px;border-radius:10px;border:2px solid var(--board-bg-2);background:#fff;color:var(--ink);
+  font-weight:700;font-size:clamp(.84rem,3.5vw,.95rem);cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;padding:8px 6px;line-height:1.25;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;}
+.sent .tag{font-family:var(--font-mono);font-size:.66rem;font-weight:600;color:var(--ink-soft);}
+.sent.on{border-color:var(--red-pen);background:#fdf0ee;transform:scale(1.03);}
+.sent.speaking{border-color:var(--pen-green);background:#e8f6ec;}
+.sent.ok{border-color:var(--pen-green);background:#e8f6ec;color:var(--pen-green);}
+.sent.ok .tag{color:var(--pen-green);}
+/* the sentence handed over on the third press — blue, the library's colour for a
+   revealed answer, so it never reads as the green a correct match earns */
+.shown{margin-top:9px;text-align:center;font-weight:600;color:var(--answer-blue);
+  line-height:1.35;font-size:clamp(.86rem,3.6vw,.98rem);}
+.shown .lbl{font-family:var(--font-mono);color:var(--ink-soft);}
+.shown-pl{color:var(--ink-soft);font-weight:600;margin-top:3px;font-size:clamp(.8rem,3.3vw,.9rem);}
+.panel-note{color:var(--ink-soft);font-size:clamp(.76rem,3.2vw,.85rem);margin-top:9px;line-height:1.4;text-align:center;}
+/* the English is revealed only once its reaction has been found */
+.heard{margin-top:9px;display:flex;flex-direction:column;gap:4px;}
+.heard div{font-size:clamp(.82rem,3.4vw,.92rem);color:var(--pen-green);font-weight:600;line-height:1.35;}
+.heard .lbl{font-family:var(--font-mono);color:var(--ink-soft);font-weight:600;}
+
+/* ---------- the five reactions, A–E ---------- */
+.choices{display:flex;flex-direction:column;gap:7px;}
+.choice{min-height:52px;display:flex;align-items:center;gap:9px;text-align:left;
+  padding:10px 10px;border-radius:10px;font-size:clamp(.8rem,3.3vw,.94rem);line-height:1.35;font-weight:600;
+  background:var(--card-bg);border:2px solid var(--board-bg-2);color:var(--ink);cursor:pointer;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:background .14s,border-color .14s;}
+.choice .letter{font-family:var(--font-mono);font-weight:700;color:var(--red-pen);flex-shrink:0;
+  width:26px;height:26px;border-radius:50%;border:2px solid var(--card-line);display:flex;align-items:center;justify-content:center;font-size:.8rem;}
+.choice.ok{background:#e8f6ec;border-color:var(--pen-green);color:var(--pen-green);cursor:default;}
+.choice.ok .letter{color:var(--pen-green);border-color:var(--pen-green);}
+.choice.miss{animation:shake .32s;border-color:var(--red-pen);background:#fdf0ee;}
+.choice .body{display:flex;flex-direction:column;gap:3px;flex:1;}
+/* the Polish sits under its English, in blue — given, not earned */
+.choice .pl{color:var(--answer-blue);font-weight:600;font-size:clamp(.76rem,3.1vw,.86rem);line-height:1.3;}
+.choice.ok .pl{color:var(--pen-green);}
+.pl-btn{flex-shrink:0;min-width:44px;min-height:44px;border-radius:22px;border:2px solid var(--card-line);
+  background:#fff;color:var(--ink-soft);font-family:var(--font-mono);font-weight:700;font-size:.72rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pl-btn.on{border-color:var(--answer-blue);color:var(--answer-blue);}
+</style>
+</head>
+<body>
+<noscript>
+  <div style="max-width:620px;margin:12px auto;background:#fff3f1;border:1px solid #d1483a;color:#a3392b;
+       border-radius:12px;padding:12px 14px;font:400 .9rem/1.5 system-ui,sans-serif;">
+    <b>To nie jest całe ćwiczenie.</b> Buduje się ono skryptem, a podgląd pliku (WhatsApp, Dysk Google,
+    Pliki, załącznik w poczcie) skryptów nie uruchamia.<br>
+    <b>Android:</b> zapisz plik i otwórz go w przeglądarce (Chrome).<br>
+    <b>iPhone / iPad:</b> podgląd nie wystarczy — wejdź na <b>adres internetowy</b> tego ćwiczenia.
+  </div>
+</noscript>
+<div class="board"><div class="frame">
+  <div class="title">Egzamin 8-klasisty Reakcje</div>
+  <div class="subtitle">Dobierz właściwą reakcję.</div>
+  <div class="statusbar">
+    <span id="score">Dopasowane: 0 / 4</span>
+    <label class="sound-toggle"><input type="checkbox" id="soundChk" checked> dźwięk</label>
+  </div>
+
+  <div class="panel">
+    <div class="sent-grid" id="sentGrid"></div>
+    <div class="shown" id="shown" hidden></div>
+    <div class="panel-note" id="note">Naciśnij <b>Zdanie 1</b>, posłuchaj wypowiedzi, a potem wybierz do niej reakcję.</div>
+    <div class="heard" id="heard"></div>
+  </div>
+
+  <div class="choices" id="choices"></div>
+  <div class="done" id="done" hidden>Brawo!</div>
+  <div class="actions"><button class="btn secondary" id="againBtn">Od nowa</button></div>
+</div></div>
+<script>
+/* If anything below throws, the page would otherwise sit there with a title and
+   no exercise, with no way to tell a real error from a viewer that never ran the
+   script at all (see the noscript notice). Say which it was. */
+window.addEventListener('error', function(e){
+  const n = document.getElementById('note');
+  if(n){ n.hidden = false; n.textContent = 'Błąd skryptu: ' + (e.message || e.type); }
+});
+
+/* Egzamin ósmoklasisty 2026, termin dodatkowy, zadanie 3 — Listening Statement
+   Matching (77). Four utterances are HEARD and never shown; the five printed
+   reactions A–E are on screen, one of which answers none of them, exactly as in
+   the paper.
+
+   Which utterance sits behind which "Zdanie" button is drawn fresh on every
+   load, and the reactions are shuffled too, so nothing can be learned by
+   position — the teacher asked for the audio to be randomised.
+   The English of an utterance appears only once its reaction has been found. */
+const UTTERANCES = [
+  {en:'You were late again yesterday, Josh!', pl:'Wczoraj znowu się spóźniłeś, Josh!', key:'C'},
+  {en:'Let me carry your suitcase. It looks very heavy.', pl:'Pozwól, że poniosę twoją walizkę. Wygląda na bardzo ciężką.', key:'A'},
+  {en:'Is this a good price for a tennis racket?', pl:'Czy to dobra cena za rakietę tenisową?', key:'E'},
+  {en:'All the best for your exam today!', pl:'Powodzenia na dzisiejszym egzaminie!', key:'B'}
+];
+const REACTIONS = [
+  {id:'A', en:'That\u2019s very kind of you, but I can manage on my own.', pl:'To bardzo miłe z twojej strony, ale poradzę sobie sam.'},
+  {id:'B', en:'Thanks. I hope I\u2019ll pass.', pl:'Dzięki. Mam nadzieję, że zdam.'},
+  {id:'C', en:'I\u2019m sorry, but my bus broke down.', pl:'Przepraszam, ale zepsuł mi się autobus.'},
+  {id:'D', en:'Not too bad, thanks, how about you?', pl:'Nieźle, dzięki, a u ciebie?'},
+  {id:'E', en:'Even with a discount it\u2019s still too high.', pl:'Nawet ze zniżką jest wciąż za wysoka.'}
+];
+
+/* ---------------- voices (§5.4: British English, male first) ---------------- */
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+/* Every line is spoken in one of two "slots", 0 or 1. The four utterances
+   alternate between them (§5.4's odd/even), and a reaction is always read in the
+   OTHER slot from the utterance it answers — so a matched pair can never come
+   out sounding like one person talking to themselves.
+
+   With a male and a female voice on the device, the slots are those two voices.
+   With only one, or none, the slots are two pitches instead: 0.8 and 1.2, at the
+   teacher's request for this file (§5.4 otherwise keeps fallbacks low).
+
+   The slot comes from the BUTTON, so Zdanie 1–4 always read 0.8, 1.2, 0.8, 1.2
+   and two questions in a row can never sound alike. Taking it from the
+   utterance's own index did exactly that: the audio is shuffled, so two
+   same-parity sentences could land on Zdanie 1 and 2 and come out identical. */
+const PITCH = [0.8, 1.2];
+const slotOf = b => b % 2;         // b is the button, not the sentence
+const other  = slot => 1 - slot;
+/* `onDone` fires when the reading has actually finished, so the exercise can
+   wait for it instead of guessing a delay. Called exactly once and always —
+   sound off, no speech support, and the Android builds where `onend` never
+   arrives (hence the safety timer), otherwise the exercise would hang. */
+function speak(text, onDone, slot){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 300);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-GB';
+  const s0 = (slot === 1) ? 1 : 0;      // which of the two speakers this line is
+  /* Setting `voice` throws if the object is not a live SpeechSynthesisVoice —
+     which happens on Android when the voice list is rebuilt under us. Losing
+     the chosen voice is survivable; losing the reading is not, because the
+     exercise waits for it. */
+  try {
+    if(maleVoice && femaleVoice){ u.voice = s0 ? femaleVoice : maleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* stay on the device default */ }
+  /* Only one voice, or none: the two speakers become two pitches instead. */
+  if(!(maleVoice && femaleVoice)) u.pitch = PITCH[s0];
+  u.onend = done;
+  u.onerror = done;
+  /* Safety net for the Android builds where `onend` never arrives. Scaled to
+     the text rather than a flat number: a freeze the length of a long sentence
+     is survivable, twelve seconds on every word is not. */
+  setTimeout(done, Math.min(8000, 1200 + text.length * 90));
+  try { speechSynthesis.speak(u); } catch(e){ done(); }
+}
+function shuffled(n){
+  const a = [...Array(n).keys()];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+const gridEl    = document.getElementById('sentGrid');
+const choicesEl = document.getElementById('choices');
+const noteEl    = document.getElementById('note');
+const heardEl   = document.getElementById('heard');
+const shownEl   = document.getElementById('shown');
+const scoreEl   = document.getElementById('score');
+const doneEl    = document.getElementById('done');
+
+let behind = [];      // behind[b] = index into UTTERANCES for button b
+let solved = [];      // solved[b] = the reaction id found for that button
+let tries = [];       // presses per button — the third one hands the sentence over
+let sel = null;       // which button is selected
+let busy = false;     // true while anything is being read
+
+function start(){
+  behind = shuffled(UTTERANCES.length);
+  solved = new Array(UTTERANCES.length).fill(null);
+  tries = new Array(UTTERANCES.length).fill(0);
+  sel = null; busy = false;
+  shownEl.hidden = true;
+  shownEl.innerHTML = '';
+  heardEl.innerHTML = '';
+  doneEl.hidden = true;
+  noteEl.hidden = false;
+  noteEl.innerHTML = 'Naciśnij <b>Zdanie 1</b>, posłuchaj wypowiedzi, a potem wybierz do niej reakcję.';
+  buildGrid();
+  buildChoices();
+  updateScore();
+}
+
+function buildGrid(){
+  gridEl.innerHTML = '';
+  behind.forEach((_, b)=>{
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = 'sent';
+    cell.dataset.button = b;
+    cell.innerHTML = '<span>Zdanie ' + (b + 1) + '</span>';
+    cell.addEventListener('click', ()=> pickSentence(b));
+    gridEl.appendChild(cell);
+  });
+}
+
+function buildChoices(){
+  choicesEl.innerHTML = '';
+  shuffled(REACTIONS.length).forEach(i=>{
+    const r = REACTIONS[i];
+    const c = document.createElement('div');
+    c.className = 'choice';
+    c.dataset.id = r.id;
+    c.innerHTML = '<span class="letter">' + r.id + '</span>' +
+                  '<span class="body"><span>' + r.en + '</span></span>';
+    c.addEventListener('click', ()=> pickReaction(c, r));
+
+    /* PL shows the Polish for that reaction. Its own button, so a tap meant as a
+       translation is never taken as an answer — and 44px, since it sits inside a
+       row that is itself a tap target. */
+    const plBtn = document.createElement('button');
+    plBtn.type = 'button';
+    plBtn.className = 'pl-btn';
+    plBtn.textContent = 'PL';
+    plBtn.setAttribute('aria-label', 'tłumaczenie reakcji ' + r.id);
+    plBtn.addEventListener('click', ev=>{
+      ev.stopPropagation();                 // not a pick
+      const body = c.querySelector('.body');
+      const shownPl = body.querySelector('.pl');
+      if(shownPl){ shownPl.remove(); plBtn.classList.remove('on'); return; }
+      const line = document.createElement('span');
+      line.className = 'pl';
+      line.textContent = r.pl;
+      body.appendChild(line);
+      plBtn.classList.add('on');
+    });
+    c.appendChild(plBtn);
+    choicesEl.appendChild(c);
+  });
+}
+
+function renderGrid(){
+  [...gridEl.children].forEach((cell, b)=>{
+    cell.classList.toggle('on', sel === b && !solved[b]);
+    cell.classList.toggle('ok', !!solved[b]);
+    cell.innerHTML = '<span>Zdanie ' + (b + 1) + '</span>' +
+      (solved[b] ? '<span class="tag">reakcja ' + solved[b] + '</span>' : '');
+  });
+}
+
+/* A button plays its utterance, and stays playable once solved — replaying a
+   sentence whose reaction is already found gives nothing away. */
+/* A button plays its utterance, and stays playable once solved — replaying a
+   sentence whose reaction is already found gives nothing away.
+
+   THE THIRD PRESS SHOWS THE SENTENCE. Two listenings are the exercise; a third
+   press means the ear alone is not getting there, so the text appears and is
+   read a second later. The gap matters: showing and speaking at once gives the
+   student nothing to read before the words arrive. Counted per button, and the
+   text stays up for that sentence so it can be read while the reaction is
+   chosen. */
+const SHOW_AFTER = 3;      // presses before the sentence is handed over
+const SHOW_DELAY = 2000;   // ms between showing it and reading it — long enough to read it first
+
+function pickSentence(b){
+  if(busy) return;
+  sel = b;
+  renderGrid();
+  const cell = gridEl.children[b];
+  const en = UTTERANCES[behind[b]].en;
+  tries[b]++;
+  const reveal = tries[b] >= SHOW_AFTER && !solved[b];
+
+  busy = true;
+  noteEl.hidden = false;
+  if(reveal){
+    /* the same third press that hands over the sentence hands over its Polish:
+       the student is already past guessing, and reading it in both languages is
+       what makes the second listening worth anything */
+    shownEl.innerHTML = '<span class="lbl">Zdanie ' + (b + 1) + ':</span> ' + en +
+                        '<div class="shown-pl">' + UTTERANCES[behind[b]].pl + '</div>';
+    shownEl.hidden = false;
+    noteEl.textContent = 'Przeczytaj i posłuchaj…';
+  } else {
+    noteEl.textContent = 'Czytam…';
+  }
+  setTimeout(()=>{
+    cell.classList.add('speaking');
+    noteEl.textContent = 'Czytam…';
+    speak(en, ()=>{
+      busy = false;
+      cell.classList.remove('speaking');
+      noteEl.textContent = solved[b]
+        ? 'Ta wypowiedź jest już dopasowana.'
+        : 'Wybierz reakcję do tej wypowiedzi.';
+      renderGrid();
+    }, slotOf(b));
+  }, reveal ? SHOW_DELAY : 0);
+}
+
+/* A reaction is READ whenever it is pressed — a wrong guess, or a press with no
+   sentence chosen, still lets the student hear the line. It is read in the
+   answerer's slot, opposite the question in hand, so hearing it never disguises
+   whose line it is. */
+function readReaction(r, done){
+  const answerSlot = other(slotOf(sel === null ? 0 : sel));
+  busy = true;
+  noteEl.hidden = false;
+  noteEl.textContent = 'Czytam…';
+  speak(r.en, ()=>{ busy = false; if(done) done(); }, answerSlot);
+}
+
+function pickReaction(cell, r){
+  if(busy) return;
+  if(cell.classList.contains('ok')){ readReaction(r, ()=>{ noteEl.textContent = 'Ta reakcja jest już dopasowana.'; }); return; }
+  if(sel === null || solved[sel]){
+    readReaction(r, ()=>{ noteEl.textContent = 'Najpierw naciśnij jedno ze zdań i posłuchaj go.'; });
+    return;
+  }
+  const want = UTTERANCES[behind[sel]].key;
+  if(r.id !== want){
+    cell.classList.remove('miss'); void cell.offsetWidth; cell.classList.add('miss');
+    setTimeout(()=> cell.classList.remove('miss'), 420);
+    readReaction(r, ()=>{ noteEl.textContent = 'Spróbuj innej reakcji.'; });
+    return;
+  }
+  // right: the utterance is revealed and the pair is read as an exchange
+  const b = sel;
+  solved[b] = r.id;
+  cell.classList.add('ok');
+  busy = true;
+  renderGrid();
+  updateScore();
+
+  shownEl.hidden = true;
+  shownEl.innerHTML = '';
+  const line = document.createElement('div');
+  line.innerHTML = '<span class="lbl">Zdanie ' + (b + 1) + ':</span> ' + UTTERANCES[behind[b]].en;
+  heardEl.appendChild(line);
+
+  noteEl.textContent = 'Czytam…';
+  speak(UTTERANCES[behind[b]].en, ()=>{
+    speak(r.en, ()=>{
+      busy = false;
+      sel = null;
+      renderGrid();
+      if(solved.every(Boolean)) finish();
+      else noteEl.textContent = 'Naciśnij następne zdanie.';
+    }, other(slotOf(b)));              // the reply is never the same person
+  }, slotOf(b));
+}
+
+function updateScore(){
+  scoreEl.textContent = 'Dopasowane: ' + solved.filter(Boolean).length + ' / ' + UTTERANCES.length;
+}
+
+function finish(){
+  doneEl.hidden = false;
+  noteEl.hidden = false;
+  /* the fifth reaction answers none of them — the paper says so, and a student
+     hunting for a fifth pair would otherwise think something is missing */
+  const spare = REACTIONS.find(r => !solved.includes(r.id));
+  noteEl.innerHTML = 'Wszystkie cztery wypowiedzi dopasowane. Reakcja <b>' + spare.id +
+    '</b> nie pasuje do żadnej z nich — w arkuszu zawsze jest jedna dodatkowa.';
+}
+
+document.getElementById('againBtn').addEventListener('click', start);
+start();
+</script>
+</body>
+</html>
