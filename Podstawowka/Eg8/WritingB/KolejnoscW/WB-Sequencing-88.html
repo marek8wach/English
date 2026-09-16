@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kolejność zdarzeń — historyjka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --pen-green:#4f8f5e;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font-body); color:var(--ink);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--board-bg-2) 0%, var(--board-bg) 60%, #5b3122 100%);
+  min-height:100vh; padding:10px 12px 28px;
+}
+body.busy .lockable{pointer-events:none}
+
+/* phone-first, but bounded: above ~560px the board stops growing and centres,
+   or the two columns stretch to half a tablet each */
+.wrap{max-width:560px; margin:0 auto}
+
+.title{
+  font-family:var(--font-display); font-weight:700; color:var(--chalk);
+  font-size:26px; line-height:1.15; text-align:center; margin:2px 0 4px;
+  text-shadow:0 1px 0 rgba(0,0,0,.25);
+}
+
+/* ---------- top bar: controls live ABOVE the board (§1) ---------- */
+.bar{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  justify-content:center; margin:0 0 10px;
+}
+.btn{
+  font-family:var(--font-body); font-size:15px; font-weight:600;
+  min-height:44px; padding:0 16px; border-radius:10px; cursor:pointer;
+  border:2px solid var(--board-frame-dark); background:var(--card-bg); color:var(--ink);
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+}
+.btn[hidden]{display:none}
+.btn:disabled{opacity:.45; cursor:default}
+.btn.icon{min-width:44px; padding:0 10px}
+
+/* ---------- the "Czytam…" pill, fixed where scrolling cannot lose it ---------- */
+.pill{
+  position:fixed; left:50%; top:8px; transform:translateX(-50%);
+  background:var(--board-frame-dark); color:var(--chalk);
+  font-size:14px; font-weight:600; padding:9px 18px; border-radius:999px;
+  box-shadow:0 3px 10px rgba(0,0,0,.35); z-index:50;
+}
+.pill[hidden]{display:none}
+
+/* ---------- pool ---------- */
+.pool{
+  display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
+  background:rgba(0,0,0,.14); border-radius:12px; padding:10px 8px;
+  min-height:56px; margin:0 0 12px;
+}
+.pool:empty::after{
+  content:'—'; color:var(--chalk); opacity:.4; font-size:18px; line-height:36px;
+}
+
+/* ---------- the passage ---------- */
+.passage{
+  background:var(--card-bg); border:1px solid var(--card-line); border-radius:14px;
+  padding:14px 13px; margin:0 0 12px; color:var(--ink);
+  font-size:clamp(.95rem,4vw,1.06rem); line-height:2.15;
+}
+.sent{ display:inline }
+/* a finished sentence can be tapped to hear it again -- it is already on screen,
+   so replaying gives nothing away (§4.2) */
+.sent.full{ cursor:pointer; border-radius:6px }
+.sent.full:active{ background:#eef6f0 }
+/* the gap is an inline drop target, and EVERY one is the same width (§4.8):
+   sized to its answer it would hand out the shape before a tile landed */
+.slot{
+  display:inline-block; min-width:9.5ch; height:34px; line-height:30px;
+  margin:0 2px; padding:0 6px; text-align:center; vertical-align:middle;
+  border:2px dashed var(--board-bg-2); border-radius:8px; background:#fffdf7;
+  font-weight:700; color:var(--ink-soft); cursor:pointer;
+  touch-action:manipulation; user-select:none; -webkit-user-select:none;
+}
+.slot.picked{ border-style:solid; border-color:var(--red-pen); background:#fdeeec }
+.slot.filled{
+  border-style:solid; border-color:var(--pen-green); background:#e9f4ec;
+  color:#2f5f3c; cursor:default;
+}
+.slot.miss{ animation:slotshake .32s }
+@keyframes slotshake{ 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+/* ---------- tiles ---------- */
+.tile{
+  font-family:var(--font-body); font-size:16px; font-weight:600;
+  min-height:44px; padding:0 13px; border-radius:9px; cursor:pointer;
+  border:2px solid var(--board-frame); background:var(--card-bg); color:var(--ink);
+  display:inline-flex; align-items:center; justify-content:center;
+  touch-action:none; user-select:none; overflow-wrap:anywhere; text-align:center;
+}
+.col .tile{width:100%; font-size:15px; padding:0 6px}
+.tile.picked{
+  border-color:var(--red-pen); background:#fdeeeb; transform:scale(1.06);
+}
+/* the ONLY colour feedback in the exercise, and only Pomoc sets it */
+.tile.dragging{opacity:.35}
+.ghost{
+  position:fixed; z-index:60; pointer-events:none; opacity:.92;
+  box-shadow:0 6px 16px rgba(0,0,0,.35);
+}
+@keyframes landed{0%{transform:scale(1)}45%{transform:scale(1.1)}100%{transform:scale(1)}}
+.tile.landed{animation:landed .32s ease-out}
+
+.status{
+  text-align:center; color:var(--chalk); font-size:13px; min-height:19px;
+  margin:11px 0 0; opacity:.9;
+}
+.done{
+  text-align:center; margin:14px 0 0; color:var(--chalk);
+  font-family:var(--font-display); font-size:25px; font-weight:700;
+}
+.done[hidden]{display:none}
+noscript p{
+  background:var(--card-bg); border-radius:10px; padding:12px; margin:12px 0;
+  font-size:14px; text-align:center;
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<h1 class="title">Ułóż historyjkę</h1>
+<noscript><p>Ta strona potrzebuje JavaScriptu. Bez niego zobaczysz tylko tytuł i to zdanie —
+otwórz plik w przeglądarce z włączonym JavaScriptem.</p></noscript>
+
+<div class="bar lockable">
+  <button class="btn" id="help" type="button">Pomoc</button>
+  <button class="btn icon" id="sound" type="button" aria-label="Dźwięk"></button>
+  <button class="btn" id="again" type="button">Jeszcze raz</button>
+</div>
+<div class="passage lockable" id="passage"></div>
+<div class="pool lockable" id="pool"></div>
+
+<p class="status" id="status"></p>
+<p class="done" id="done" hidden>Brawo! 🎉</p>
+
+</div>
+
+<div class="pill" id="pill" hidden>Czytam…</div>
+
+<script>
+(function(){
+'use strict';
+/* ============================================================
+   DATA
+   ============================================================
+   STORY is a list of SENTENCES, each a list of parts: {t:'text'} or
+   {g:'answer'} for a gap. One tile per gap, so the pool is exactly the
+   right size and every tile is used once -- which is what makes the
+   puzzle well defined even though a connector can fit more than one
+   English sentence in the abstract. Only the context decides, and that
+   is the whole lesson. */
+var STORY = [
+  [{t:'Last Saturday our class went on a trip to the mountains. '}],
+  [{g:'at first'}, {t:' we were all a bit nervous, but we soon relaxed. '}],
+  [{g:'during'}, {t:' the journey, we sang songs on the bus. '}],
+  [{g:'after'}, {t:' two hours, we arrived at the top. '}],
+  [{t:'We had lunch, and '}, {g:'then'}, {t:' we took some photos. '}],
+  [{g:'while'}, {t:' we were walking back, it started to rain. '}],
+  [{g:'all of a sudden'}, {t:', there was a loud crash of thunder. '}],
+  [{t:'We had to run to the bus '}, {g:'because'}, {t:' the storm was getting worse. '}],
+  [{g:'in the end'}, {t:', we got home safely and everyone agreed it was a great day.'}]
+];
+
+/* how a written form should be SAID, where the two differ (§4.6) */
+
+/* how a written form should be SAID, where the two differ (§4.6) */
+var SPOKEN = {};
+function spoken(w){ return SPOKEN[w] || w; }
+
+/* ============================================================
+   VOICES  (§5.4 — en-GB first, English only, never the whole list)
+   ============================================================ */
+var maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  var all=[];
+  try{ all = (window.speechSynthesis && speechSynthesis.getVoices()) || []; }catch(e){ all=[]; }
+  var gb = all.filter(function(v){ return /^en[-_]GB/i.test(v.lang||''); });
+  var en = all.filter(function(v){ return /^en/i.test(v.lang||''); });
+  var voices = gb.length ? gb : en;
+  englishVoice = voices[0] || null;
+  maleVoice = voices.filter(function(v){ return /male/i.test(v.name) && !/female/i.test(v.name); })[0] || null;
+  femaleVoice = voices.filter(function(v){ return /female/i.test(v.name); })[0] || null;
+}
+refreshVoices();
+try{ if(window.speechSynthesis) speechSynthesis.onvoiceschanged = refreshVoices; }catch(e){}
+
+var soundOn = true;
+var speakCount = 0;
+
+/* onDone fires EXACTLY once, in every case: sound off, no engine, a throw,
+   and the Android builds where `onend` never arrives (§4.7). Anything that
+   waits on this callback deadlocks without it. */
+function speak(text, onDone){
+  var done = false;
+  function fire(){ if(done) return; done = true; try{ onDone && onDone(); }catch(e){} }
+  if(!soundOn || !text){ setTimeout(fire, 0); return; }
+  var synth = null;
+  try{ synth = window.speechSynthesis || null; }catch(e){ synth = null; }
+  if(!synth || typeof SpeechSynthesisUtterance === 'undefined'){ setTimeout(fire, 0); return; }
+  try{ synth.cancel(); }catch(e){}
+
+  var u;
+  try{ u = new SpeechSynthesisUtterance(text); }catch(e){ setTimeout(fire, 0); return; }
+  u.lang = 'en-GB';
+  speakCount++;
+  var wantMale = (speakCount % 2) === 1;
+  var pick = wantMale ? (maleVoice || englishVoice) : (femaleVoice || maleVoice || englishVoice);
+  /* assigning .voice throws when the list was rebuilt underneath us (§4.9) —
+     losing the chosen voice is survivable, losing the reading is not */
+  try{ if(pick) u.voice = pick; }catch(e){}
+  if(!maleVoice || !femaleVoice) u.pitch = wantMale ? 0.8 : 1.2;
+  u.onend = fire;
+  u.onerror = fire;
+  setTimeout(fire, Math.min(8000, 1200 + String(text).length * 90));
+  try{ synth.speak(u); }catch(e){ fire(); }
+}
+/* ============================================================
+   STATE
+   ============================================================ */
+var DRAG_THRESHOLD = 8;
+
+var tiles = [];              // {id, word, place:'pool'|gapIndex}
+var gaps  = [];              // {i, sent, answer, filled:false}
+var picked = null;           // id of the selected tile
+var busy = false;
+
+var pool = document.getElementById('pool');
+var passage = document.getElementById('passage');
+var pill = document.getElementById('pill');
+var statusEl = document.getElementById('status');
+var doneEl = document.getElementById('done');
+var helpBtn = document.getElementById('help');
+var soundBtn = document.getElementById('sound');
+var againBtn = document.getElementById('again');
+
+function cap(w){ return w.charAt(0).toUpperCase() + w.slice(1); }
+
+function shuffle(a){
+  for(var i=a.length-1; i>0; i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function deal(){
+  gaps = []; tiles = [];
+  var gi = 0, id = 0;
+  STORY.forEach(function(parts, si){
+    parts.forEach(function(p){
+      if(p.g !== undefined){
+        gaps.push({i:gi, sent:si, answer:p.g, filled:false,
+                   cap:(parts.indexOf(p) === 0)});
+        tiles.push({id:id++, word:p.g, place:'pool'});
+        gi++;
+      }
+    });
+  });
+  shuffle(tiles);                 // a fresh order on every load
+  picked = null;
+  busy = false;                   // a fresh deal must clear it, or a reload lands frozen
+  document.body.classList.remove('busy');
+  pill.hidden = true;
+  doneEl.hidden = true;
+  statusEl.textContent = '';
+  render();
+}
+
+/* the sentence as it currently reads, for the voice */
+function sentenceText(si){
+  var out = '';
+  var gi = -1;
+  STORY.forEach(function(parts, k){
+    parts.forEach(function(p){
+      if(p.g !== undefined){ gi++; if(k === si) out += (gaps[gi] && gaps[gi].cap ? cap(p.g) : p.g); }
+      else if(k === si) out += p.t;
+    });
+  });
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+function sentenceFilled(si){
+  return gaps.filter(function(g){ return g.sent === si; })
+             .every(function(g){ return g.filled; });
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function tileEl(t){
+  var el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'tile' + (picked === t.id ? ' picked' : '');
+  el.dataset.id = String(t.id);
+  el.appendChild(document.createTextNode(t.word));
+  return el;
+}
+
+function render(){
+  pool.textContent = '';
+  tiles.filter(function(t){ return t.place === 'pool'; })
+       .forEach(function(t){ pool.appendChild(tileEl(t)); });
+
+  passage.textContent = '';
+  var gi = 0;
+  STORY.forEach(function(parts, si){
+    var sent = document.createElement('span');
+    sent.className = 'sent' + (sentenceFilled(si) ? ' full' : '');
+    sent.dataset.sent = String(si);
+    parts.forEach(function(p){
+      if(p.g !== undefined){
+        var g = gaps[gi++];
+        var slot = document.createElement('span');
+        slot.className = 'slot' + (g.filled ? ' filled' : '');
+        slot.dataset.gap = String(g.i);
+        slot.textContent = g.filled ? (g.cap ? cap(g.answer) : g.answer) : '\u00a0';
+        sent.appendChild(slot);
+      } else {
+        sent.appendChild(document.createTextNode(p.t));
+      }
+    });
+    passage.appendChild(sent);
+  });
+
+  helpBtn.disabled = busy || gaps.every(function(g){ return g.filled; });
+  soundBtn.innerHTML = soundOn ? speakerSvg() : mutedSvg();
+  statusEl.textContent = gaps.filter(function(g){ return g.filled; }).length +
+                         ' / ' + gaps.length;
+}
+
+function speakerSvg(){
+  return '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/>' +
+    '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>';
+}
+function mutedSvg(){
+  return '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/>' +
+    '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 9l5 6M21 9l-5 6"/></svg>';
+}
+
+/* ============================================================
+   MOVING TILES
+   ============================================================ */
+function byId(id){
+  for(var i=0;i<tiles.length;i++) if(tiles[i].id === id) return tiles[i];
+  return null;
+}
+
+function hold(){ busy = true; document.body.classList.add('busy'); pill.hidden = false; render(); }
+function release(){ busy = false; document.body.classList.remove('busy'); pill.hidden = true; render(); }
+
+/* One-sided feedback (§4.2): a right tile locks green and the sentence is read,
+   a wrong one shakes and stays in the pool. A wrong tile costs nothing but the
+   knowledge that it is not that one, which is exactly what teaches the choice. */
+function place(id, gi){
+  if(busy) return;
+  var t = byId(id), g = gaps[gi];
+  if(!t || !g || g.filled || t.place !== 'pool') return;
+  if(t.word !== g.answer){
+    picked = null;
+    render();
+    var el = document.querySelector('.slot[data-gap="' + gi + '"]');
+    if(el){ el.classList.add('miss'); setTimeout(function(){ el.classList.remove('miss'); }, 340); }
+    return;
+  }
+  g.filled = true;
+  t.place = gi;
+  picked = null;
+  render();
+  if(sentenceFilled(g.sent)) readSentence(g.sent, checkDone);
+  else checkDone();
+}
+
+function readSentence(si, after){
+  hold();
+  speak(sentenceText(si), function(){
+    release();
+    if(after) after();
+  });
+}
+
+function tapTile(id){
+  if(busy) return;
+  var t = byId(id);
+  if(!t || t.place !== 'pool') return;
+  picked = (picked === t.id) ? null : t.id;   // tapping it again clears the selection
+  render();
+}
+
+function tapSlot(gi){
+  if(busy) return;
+  var g = gaps[gi];
+  if(g && g.filled){                          // solved: hearing it again gives nothing away
+    if(sentenceFilled(g.sent)) readSentence(g.sent);
+    return;
+  }
+  if(picked === null) return;
+  place(picked, gi);
+}
+
+function tapSentence(si){
+  if(busy) return;
+  if(sentenceFilled(si)) readSentence(si);
+}
+
+/* ============================================================
+   POMOC  --  fills the first empty gap and reads its sentence
+   ============================================================ */
+function onHelp(){
+  if(busy) return;
+  var g = null;
+  for(var i=0;i<gaps.length;i++) if(!gaps[i].filled){ g = gaps[i]; break; }
+  if(!g) return;
+  var t = null;
+  for(var j=0;j<tiles.length;j++)
+    if(tiles[j].place === 'pool' && tiles[j].word === g.answer){ t = tiles[j]; break; }
+  if(!t) return;
+  place(t.id, g.i);
+}
+
+function checkDone(){
+  if(!gaps.every(function(g){ return g.filled; })) return;
+  doneEl.hidden = false;
+}
+
+/* ============================================================
+   EVENTS  --  tap is the route the instructions lead with (§4.2)
+   ============================================================ */
+document.addEventListener('click', function(e){
+  var tile = e.target.closest ? e.target.closest('.tile') : null;
+  if(tile){ tapTile(+tile.dataset.id); return; }
+  var slot = e.target.closest ? e.target.closest('.slot') : null;
+  if(slot){ tapSlot(+slot.dataset.gap); return; }
+  var sent = e.target.closest ? e.target.closest('.sent') : null;
+  if(sent){ tapSentence(+sent.dataset.sent); }
+});
+
+helpBtn.addEventListener('click', onHelp);
+againBtn.addEventListener('click', deal);
+soundBtn.addEventListener('click', function(){
+  soundOn = !soundOn;
+  render();
+});
+
+deal();
+
+window.__ex = {
+  tiles: function(){ return tiles; },
+  gaps: function(){ return gaps; },
+  isBusy: function(){ return busy; },
+  place: place,
+  help: onHelp,
+  deal: deal,
+  sentence: sentenceText
+};
+})();
+</script>
+</body>
+</html>
