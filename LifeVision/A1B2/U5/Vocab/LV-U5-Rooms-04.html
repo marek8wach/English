@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Szkoła — pomieszczenia — napisz po angielsku</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{overflow-x:hidden;}
+body{margin:0;padding-top:62px;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+/* Phone in portrait is the design width; the tablet gets the same layout with
+   room to spare. */
+.board{max-width:620px;margin:0 auto;padding:12px 8px 28px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:7px solid var(--board-frame);border-radius:14px;box-shadow:0 0 0 3px var(--board-frame-dark),0 14px 30px rgba(0,0,0,.4);padding:12px 9px 20px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:clamp(1.25rem,5.6vw,1.7rem);text-align:center;margin:2px 0 1px;text-shadow:0 2px 0 rgba(0,0,0,.25);line-height:1.25;}
+.subtitle{text-align:center;color:var(--chalk);opacity:.9;font-size:clamp(.86rem,3.7vw,1rem);font-weight:600;margin:0 0 11px;}
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:clamp(.76rem,3.2vw,.85rem);color:var(--chalk);margin:0 2px 9px;}
+.reading-note{color:var(--chalk);opacity:.85;}
+.sound-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.sound-toggle input{width:17px;height:17px;}
+
+
+/* ---------- one row per phrase: the Polish above, the blank below ---------- */
+.item{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;padding:10px 12px;margin-bottom:9px;}
+.head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:7px;}
+.num{font-weight:700;color:var(--ink-soft);font-size:.85rem;}
+.pl-cue{font-size:.98rem;font-weight:600;color:var(--ink);line-height:1.3;}
+/* An <input> cannot colour its own characters, so the letters are drawn by a
+   span sitting exactly over a transparent input — same padding, same font, both
+   left-aligned, which is what keeps the two on top of each other. */
+.gap{position:relative;display:block;}
+.gap-input{width:100%;font-family:var(--font-mono);font-size:.98rem;padding:11px 11px;border:2px solid var(--card-line);
+  border-radius:9px;background:#fff;color:var(--ink);text-align:left;}
+.gap-input.painted{color:transparent;caret-color:var(--ink);}
+.gap-input:focus{outline:none;box-shadow:0 0 0 3px rgba(138,79,52,.28);}
+.gap-input.typing-ok{border-color:#9ccdaa;background:#f3fbf5;}
+.gap-input.typing-bad{border-color:#e3a79e;background:#fdf2f0;}
+.gap-input.done{border-color:var(--pen-green);background:#eefaf0;}
+.ink{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;
+  padding:11px 11px;font-family:var(--font-mono);font-size:.98rem;pointer-events:none;white-space:pre;overflow:hidden;}
+.ink .ok{color:var(--pen-green);}
+.ink .bad{color:var(--red-pen);}
+.gap-input.done + .ink{font-weight:700;}
+/* The one control that appears mid-exercise sits at the TOP of the screen, where
+   the phone keyboard cannot cover it (§1). It says Czytam… while the phrase is
+   being read and turns into Dalej when the reading has finished. */
+.pill{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;}
+.pill[hidden]{display:none;}
+.reading-pill{background:var(--ink);color:var(--chalk);font-family:var(--font-body);font-size:.82rem;font-weight:600;
+  padding:9px 16px;border-radius:20px;box-shadow:0 4px 12px rgba(0,0,0,.35);}
+.reading-pill[hidden]{display:none;}
+.next-btn{min-height:44px;padding:11px 26px;font-size:.92rem;box-shadow:0 4px 12px rgba(0,0,0,.35);}
+.next-btn[hidden]{display:none;}
+body.busy #items{pointer-events:none;opacity:.72;}
+.help-btn{min-height:44px;padding:11px 22px;font-size:.92rem;box-shadow:0 4px 12px rgba(0,0,0,.35);}
+.help-btn:disabled{opacity:.5;}
+/* The letters revealed so far, under the blank the student is typing
+   into. A multi-word answer keeps its gap visible: the space is a
+   NON-BREAKING one, revealed or not, because a plain space in an
+   inline run can be collapsed away and the word boundary is exactly
+   what the hint is there to show (§4.8). */
+.hint{margin-top:7px;font-family:var(--font-mono);font-size:1rem;letter-spacing:.09em;color:var(--ink-soft);}
+.actions{display:flex;gap:9px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.88rem;border:none;border-radius:20px;
+  padding:11px 22px;min-height:44px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);
+  display:inline-flex;align-items:center;justify-content:center;}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.done{text-align:center;font-family:var(--font-display);font-size:clamp(1.4rem,6vw,1.9rem);
+  color:var(--pen-green);margin-top:12px;text-shadow:0 2px 0 rgba(255,255,255,.55);}
+</style>
+</head>
+<body>
+<noscript>
+  <div style="max-width:620px;margin:12px auto;background:#fff3f1;border:1px solid #d1483a;color:#a3392b;
+       border-radius:12px;padding:12px 14px;font:400 .9rem/1.5 system-ui,sans-serif;">
+    <b>To nie jest całe ćwiczenie.</b> Buduje się ono skryptem, a podgląd pliku (WhatsApp, Dysk Google,
+    Pliki, załącznik w poczcie) skryptów nie uruchamia.<br>
+    <b>Android:</b> zapisz plik i otwórz go w przeglądarce (Chrome).<br>
+    <b>iPhone / iPad:</b> podgląd nie wystarczy, a przeglądarki na iOS nie otwierają plików zapisanych
+    na urządzeniu — wejdź na <b>adres internetowy</b> tego ćwiczenia (link).
+  </div>
+</noscript>
+<div class="board"><div class="frame">
+  <div class="title">Szkoła — pomieszczenia</div>
+  <div class="subtitle">Napisz po angielsku</div>
+  <div class="statusbar">
+    <span id="score">Zrobione: 0 / 13</span>
+    <label class="sound-toggle"><input type="checkbox" id="soundChk" checked> dźwięk</label>
+  </div>
+  <div class="pill" id="pill">
+    <button class="btn help-btn" id="helpBtn">Pomoc</button>
+    <span class="reading-pill" id="readingPill" hidden>Czytam…</span>
+    <button class="btn next-btn" id="nextBtn" hidden>Dalej</button>
+  </div>
+  <div id="items"></div>
+  <div class="done" id="done" hidden>Brawo!</div>
+  <div class="actions"><button class="btn secondary" id="againBtn">Od nowa</button></div>
+</div></div>
+<script>
+/* If anything below throws, the page would otherwise sit there with a title and
+   no exercise, with no way to tell a real error from a viewer that never ran the
+   script at all (see the noscript notice). Say which it was. */
+window.addEventListener('error', function(e){
+  const box = document.getElementById('items');
+  if(box) box.innerHTML = '<div class="item" style="color:#a3392b;font-weight:600;">Błąd skryptu: ' +
+    (e.message || e.type) + '</div>';
+});
+
+/* Polish shown, English typed: the target language is the one worth spelling,
+   and it is the only direction in which showing letters teaches anything. */
+const PAIRS = [
+  {en:"art room",             pl:"pracownia artystyczna"},
+  {en:"canteen",              pl:"stołówka"},
+  {en:"corridor",             pl:"korytarz"},
+  {en:"football pitch",       pl:"boisko do piłki nożnej"},
+  {en:"gym",                  pl:"sala gimnastyczna"},
+  {en:"head teacher's office", pl:"gabinet dyrektora"},
+  {en:"IT room",              pl:"sala informatyczna"},
+  {en:"library",              pl:"biblioteka"},
+  {en:"music room",           pl:"sala muzyczna"},
+  {en:"noticeboard",          pl:"tablica ogłoszeń"},
+  {en:"nurse's office",       pl:"gabinet pielęgniarki"},
+  {en:"science lab",          pl:"laboratorium"},
+  {en:"staffroom",            pl:"pokój nauczycielski"}
+];
+const SPOKEN = {};   /* e.g. {'PE':'P E'} where letters are said one by one */
+/* speak() below calls this, so it travels with the voices block — leaving it
+   behind throws at the first reading, and a parse check cannot see that (§4.9). */
+/* A trailing ellipsis marks a sentence the student finishes; it is never
+   said aloud and never has to be typed. */
+const sayable = t => String(t).replace(/\s*\.{3}\s*$/, '');
+const spoken = w => sayable(SPOKEN[w] || w);
+const RATE = {};     /* e.g. {'maths':0.55} for a cluster the engine swallows */
+
+/* ---------------- voices (§5.4: male first) ---------------- */
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+let speakCount = 0;
+/* `onDone` fires when the reading has actually finished, so the board can be
+   held until then instead of guessing a delay. Called exactly once and always —
+   sound off, no speech support, and the Android builds where `onend` never
+   arrives (hence the safety timer), or the board would stay frozen. */
+function speak(englishWord, onDone){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 250);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(spoken(englishWord));
+  u.lang='en-GB';
+  u.rate = RATE[englishWord] || 1;
+  const odd = (++speakCount % 2 === 1);
+  /* Setting `voice` throws if the object is not a live SpeechSynthesisVoice —
+     which happens on Android when the voice list is rebuilt under us. Losing
+     the chosen voice is survivable; losing the reading is not, because the
+     exercise waits for it. */
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* stay on the device default */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 1.2;
+  u.onend = done;
+  u.onerror = done;
+  /* Safety net for the Android builds where `onend` never arrives. Scaled to
+     the text rather than a flat number: a freeze the length of a long sentence
+     is survivable, twelve seconds on every word is not. */
+  setTimeout(done, Math.min(8000, 1200 + spoken(englishWord).length * 90));
+  try { speechSynthesis.speak(u); } catch(e){ done(); }
+}
+
+/* ---------------- the board, held while a phrase is read ---------------- */
+const itemsEl = document.getElementById('items');
+const scoreEl = document.getElementById('score');
+const pillEl = document.getElementById('pill');
+const readingPill = document.getElementById('readingPill');
+const nextBtn = document.getElementById('nextBtn');
+const doneEl = document.getElementById('done');
+let busy = false, doneCount = 0, pendingAfter = null;
+
+function setBusy(on){
+  busy = on;
+  document.body.classList.toggle('busy', on);
+  /* The band is permanent now that Pomoc lives in it; only what is
+     inside it comes and goes. */
+  helpBtn.disabled = on;
+}
+
+/* A finished phrase is read aloud, and nothing may interrupt that — speak()
+   cancels whatever is still playing, so an unguarded tap would cost the student
+   the reading they just earned. When it ends the pill turns into Dalej: the
+   student decides when to move on, and because the move happens inside a real
+   tap the phone keyboard comes back up with it. */
+function readThen(text, after){
+  setBusy(true);
+  readingPill.hidden = false;
+  nextBtn.hidden = true;
+  pendingAfter = after;
+  speak(text, ()=>{
+    readingPill.hidden = true;
+    nextBtn.hidden = false;
+    nextBtn.focus();
+  });
+}
+nextBtn.addEventListener('click', ()=>{
+  const after = pendingAfter;
+  pendingAfter = null;
+  setBusy(false);
+  readingPill.hidden = true;
+  nextBtn.hidden = true;
+  if(after) after();
+});
+
+
+/* ---------------- Pomoc: first the sound, then the letters ----------------
+   The first press READS the word and shows nothing — hearing it names it
+   without spelling it, and the number of letters stays a clue of its own.
+   Every press after that gives one more letter AND says it again: a student
+   who needs a letter usually wants the sound with it. Once the whole word is
+   out the button keeps reading rather than disabling itself (§4.8). */
+const helpBtn = document.getElementById('helpBtn');
+let speaking = false, activeInp = null;
+
+/* The row being helped is the one the student is in; if they are in none (or in
+   one already finished) it is the first still empty, reading down the screen. */
+function currentInput(){
+  if(activeInp && activeInp.dataset.filled !== '1') return activeInp;
+  return document.querySelector('.gap-input:not([data-filled="1"])');
+}
+function showHint(inp){
+  const hint = inp.parentNode.nextElementSibling;
+  const n = +(inp.dataset.hintN || 0), a = inp.dataset.answer;
+  hint.hidden = !n;
+  hint.textContent = !n ? '' : Array.from(a).map((ch, i)=>
+    ch === ' ' ? '\u00a0' : (i < n ? ch : '_')).join('');
+}
+helpBtn.addEventListener('click', ()=>{
+  /* Two quick presses would otherwise start two utterances, and cancel() stops
+     the first mid-word — which sounds broken rather than absent. Ignore the
+     press until onDone says the last reading has finished (§4.8). */
+  if(speaking || busy) return;
+  const inp = currentInput();
+  if(!inp) return;
+  if(inp.dataset.heard === '1'){
+    const a = inp.dataset.answer;
+    inp.dataset.hintN = Math.min(+(inp.dataset.hintN || 0) + 1, a.length);
+    showHint(inp);
+  } else {
+    inp.dataset.heard = '1';        /* the first press is the reading alone */
+  }
+  speaking = true;
+  helpBtn.disabled = true;
+  readingPill.hidden = false;
+  /* Inside the tap, so the phone keyboard comes back with it — a focus call
+     fired from a speech callback cannot be relied on to do that (§4.8). */
+  inp.focus();
+  speak(inp.dataset.answer, ()=>{
+    speaking = false;
+    helpBtn.disabled = false;
+    readingPill.hidden = true;
+  });
+});
+
+
+/* Which spelling the student is aiming at: everything typed so far that still
+   matches counts green, the first letter that cannot be right and everything
+   after it counts red. It never shows a letter they have not typed. */
+function matchLen(target, typed){
+  let i = 0;
+  while(i < typed.length && i < target.length && typed[i].toLowerCase() === target[i].toLowerCase()) i++;
+  return i;
+}
+function paint(inp){
+  const ink = inp.nextElementSibling;
+  const typed = inp.value, good = matchLen(inp.dataset.answer, typed);
+  ink.textContent = '';
+  Array.from(typed).forEach((ch, i)=>{
+    const sp = document.createElement('span');
+    sp.className = i < good ? 'ok' : 'bad';
+    sp.textContent = ch;
+    ink.appendChild(sp);
+  });
+  const wrong = typed.length > good;
+  inp.classList.toggle('typing-ok', typed !== '' && !wrong && !inp.classList.contains('done'));
+  inp.classList.toggle('typing-bad', wrong);
+}
+const norm = t => sayable(t || '').trim().toLowerCase().replace(/’/g, "'").replace(/\s+/g, ' ');
+
+function focusNext(from){
+  const all = Array.from(document.querySelectorAll('.gap-input'));
+  const at = all.indexOf(from);
+  /* wraps round, so a phrase left for later is come back to rather than lost */
+  for(let k = 1; k <= all.length; k++){
+    const next = all[(at + k) % all.length];
+    if(next.dataset.filled !== '1'){ next.focus(); next.scrollIntoView({block:'center'}); return; }
+  }
+}
+
+function build(){
+  itemsEl.innerHTML = '';
+  doneCount = 0;
+  doneEl.hidden = true;
+  setBusy(false);
+  speaking = false; activeInp = null; helpBtn.disabled = false;
+  scoreEl.textContent = 'Zrobione: 0 / ' + PAIRS.length;
+  PAIRS.forEach((pair, i)=>{
+    const item = document.createElement('div');
+    item.className = 'item';
+    const head = document.createElement('div');
+    head.className = 'head';
+    const num = document.createElement('span');
+    num.className = 'num';
+    num.textContent = (i + 1) + '.';
+    head.appendChild(num);
+    const cue = document.createElement('span');
+    cue.className = 'pl-cue';
+    cue.textContent = pair.pl;
+    head.appendChild(cue);
+    item.appendChild(head);
+
+    const gap = document.createElement('span');
+    gap.className = 'gap';
+    const inp = document.createElement('input');
+    inp.className = 'gap-input painted';
+    inp.type = 'text';
+    inp.autocomplete = 'off';
+    inp.spellcheck = false;
+    inp.autocapitalize = 'off';
+    inp.dataset.answer = pair.en;
+    inp.setAttribute('aria-label', pair.pl);
+    inp.addEventListener('focus', ()=>{ activeInp = inp; });
+    gap.appendChild(inp);
+    const ink = document.createElement('span');
+    ink.className = 'ink';
+    ink.setAttribute('aria-hidden', 'true');
+    gap.appendChild(ink);
+    item.appendChild(gap);
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.hidden = true;
+    hint.setAttribute('aria-hidden', 'true');
+    item.appendChild(hint);
+    itemsEl.appendChild(item);
+
+    /* No submit button: the phone keyboard covers anything below the field, so
+       a right answer is taken the moment it is typed (§1). */
+    inp.addEventListener('input', ()=>{
+      if(inp.dataset.filled === '1'){ inp.value = pair.en; return; }
+      if(busy) return;
+      paint(inp);
+      if(norm(inp.value) !== norm(pair.en)) return;
+      inp.value = pair.en;                 /* the canonical spelling, capitals and all */
+      inp.dataset.filled = '1';
+      inp.classList.add('done');
+      hint.hidden = true;            /* the answer is on screen now */
+      inp.classList.remove('typing-ok', 'typing-bad');
+      paint(inp);
+      doneCount++;
+      scoreEl.textContent = 'Zrobione: ' + doneCount + ' / ' + PAIRS.length;
+      readThen(pair.en, ()=>{
+        if(doneCount >= PAIRS.length){
+          doneEl.hidden = false;
+          helpBtn.disabled = true;   /* nothing left to help with */
+          return;
+        }
+        focusNext(inp);
+      });
+    });
+  });
+}
+
+document.getElementById('againBtn').addEventListener('click', ()=>{ build(); });
+build();
+</script>
+</body>
+</html>
