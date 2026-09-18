@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Szkoła — przybory — posłuchaj i wybierz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --board-bg:#6b3a28; --board-bg-2:#8a4f34; --board-frame:#4a3324; --board-frame-dark:#2e2016;
+  --chalk:#f5ead9; --card-bg:#fdfaf3; --card-line:#e6dcc8; --ink:#2b2b26; --ink-soft:#78766a;
+  --red-pen:#d1483a; --red-pen-dark:#a3392b; --pen-green:#4f8f5e; --answer-blue:#1d4ed8;
+  --font-display:'Kalam',cursive; --font-body:'Inter',system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{overflow-x:hidden;}
+body{margin:0;background:var(--board-frame-dark);font-family:var(--font-body);color:var(--ink);}
+.board{max-width:620px;margin:0 auto;padding:12px 8px 28px;background:linear-gradient(160deg,var(--board-bg),var(--board-bg-2));min-height:100vh;}
+.frame{border:7px solid var(--board-frame);border-radius:14px;box-shadow:0 0 0 3px var(--board-frame-dark),0 14px 30px rgba(0,0,0,.4);padding:12px 9px 20px;}
+.title{font-family:var(--font-display);color:var(--chalk);font-size:clamp(1.2rem,5.4vw,1.7rem);text-align:center;margin:2px 0 1px;text-shadow:0 2px 0 rgba(0,0,0,.25);line-height:1.25;}
+.subtitle{text-align:center;color:var(--chalk);opacity:.9;font-size:clamp(.84rem,3.6vw,1rem);font-weight:600;margin:0 0 11px;}
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--font-mono);
+  font-size:clamp(.74rem,3.1vw,.85rem);color:var(--chalk);margin:0 2px 9px;}
+.sound-toggle{display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.sound-toggle input{width:17px;height:17px;}
+.btn{font-family:var(--font-body);font-weight:600;font-size:.88rem;border:none;border-radius:20px;
+  padding:11px 22px;min-height:44px;cursor:pointer;background:var(--board-bg-2);color:var(--chalk);
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--card-line);color:var(--ink);}
+.btn[disabled]{opacity:.4;cursor:default;}
+.actions{display:flex;gap:9px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+.done{text-align:center;font-family:var(--font-display);font-size:clamp(1.4rem,6vw,1.9rem);
+  color:var(--pen-green);margin:10px 0 2px;text-shadow:0 2px 0 rgba(255,255,255,.55);}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
+/* ---------- the listening panel ---------- */
+.panel{background:var(--card-bg);border:1px solid var(--card-line);border-radius:12px;
+  padding:16px 12px;text-align:center;margin-bottom:11px;}
+.read-btn{font-size:1.05rem;padding:14px 34px;min-height:52px;}
+.read-btn.speaking{background:var(--pen-green);}
+.panel-note{color:var(--ink-soft);font-size:clamp(.76rem,3.2vw,.85rem);margin-top:9px;line-height:1.4;}
+/* the English is hidden until the answer is right, then shown as it is read again */
+.reveal{margin-top:10px;font-size:clamp(.92rem,3.9vw,1.06rem);font-weight:600;color:var(--pen-green);line-height:1.4;}
+.panel-buttons{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;}
+.help-btn{padding:14px 26px;min-height:52px;}
+/* the English shown by Pomoc — blue, the library's colour for a revealed answer,
+   so it never reads as the green the student earns by getting it right */
+.help-text{margin-top:10px;font-size:clamp(.92rem,3.9vw,1.06rem);font-weight:600;color:var(--answer-blue);line-height:1.4;}
+.choices{display:flex;flex-direction:column;gap:7px;}
+.choice{min-height:52px;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:10px 9px;border-radius:10px;font-size:clamp(.8rem,3.3vw,.94rem);line-height:1.35;font-weight:600;
+  background:var(--card-bg);border:2px solid var(--board-bg-2);color:var(--ink);cursor:pointer;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:background .14s,border-color .14s;}
+.choice.ok{background:#e8f6ec;border-color:var(--pen-green);color:var(--pen-green);cursor:default;}
+.choice.miss{animation:shake .32s;border-color:var(--red-pen);background:#fdf0ee;}
+.choice.locked{cursor:default;}
+</style>
+</head>
+<body>
+<noscript>
+  <div style="max-width:620px;margin:12px auto;background:#fff3f1;border:1px solid #d1483a;color:#a3392b;
+       border-radius:12px;padding:12px 14px;font:400 .9rem/1.5 system-ui,sans-serif;">
+    <b>To nie jest całe ćwiczenie.</b> Buduje się ono skryptem, a podgląd pliku (WhatsApp, Dysk Google,
+    Pliki, załącznik w poczcie) skryptów nie uruchamia.<br>
+    <b>Android:</b> zapisz plik i otwórz go w przeglądarce (Chrome).<br>
+    <b>iPhone / iPad:</b> podgląd nie wystarczy, a przeglądarki na iOS nie otwierają plików zapisanych
+    na urządzeniu — wejdź na <b>adres internetowy</b> tego ćwiczenia (link).
+  </div>
+</noscript>
+<div class="board"><div class="frame">
+  <div class="title">Szkoła — przybory</div>
+  <div class="subtitle">Posłuchaj i wybierz</div>
+  <div class="statusbar">
+    <span id="score">Zrobione: 0 / 11</span>
+    <label class="sound-toggle"><input type="checkbox" id="soundChk" checked> dźwięk</label>
+  </div>
+
+  <div class="panel">
+    <div class="panel-buttons">
+      <button class="btn read-btn" id="readBtn">Czytaj</button>
+      <button class="btn secondary help-btn" id="helpBtn">Pomoc</button>
+    </div>
+    <div class="panel-note" id="note">Naciśnij <b>Czytaj</b> i posłuchaj pytania po angielsku, a potem wybierz jego polskie znaczenie.</div>
+    <div class="help-text" id="help" hidden></div>
+    <div class="reveal" id="reveal" hidden></div>
+  </div>
+
+  <div class="choices" id="choices"></div>
+  <div class="done" id="done" hidden>Brawo!</div>
+  <div class="actions"><button class="btn secondary" id="againBtn">Od nowa</button></div>
+</div></div>
+<script>
+/* If anything below throws, the page would otherwise sit there with a title and
+   no exercise, with no way to tell a real error from a viewer that never ran the
+   script at all (see the noscript notice). Say which it was. */
+window.addEventListener('error', function(e){
+  const n = document.getElementById('note');
+  if(n){ n.hidden = false; n.textContent = 'Błąd skryptu: ' + (e.message || e.type); }
+});
+/* Tiger & Friends 3, Lekcja 1 — Listening Statement Matching (77).
+   Czytaj reads an English sentence that is never shown; the student picks the
+   Polish that matches. On a correct pick the English appears and is read a
+   SECOND time, and only when that reading has actually ended does the next
+   sentence come up — driven by utterance.onend, never by a guessed delay, or
+   the next round would talk over it. Pomoc shows the English of the question in
+   hand, once it has been heard at least once. */
+const ITEMS = [
+  {en:"file",            pl:"segregator"},
+  {en:"folder",          pl:"teczka"},
+  {en:"glue",            pl:"klej"},
+  {en:"highlighter",     pl:"zakreślacz"},
+  {en:"locker",          pl:"szafka"},
+  {en:"marker",          pl:"flamaster, pisak"},
+  {en:"notebook",        pl:"zeszyt, notes"},
+  {en:"paper clip",      pl:"spinacz"},
+  {en:"pencil sharpener", pl:"temperówka"},
+  {en:"rubber",          pl:"gumka"},
+  {en:"ruler",           pl:"linijka"}
+];
+/* ---------------- voices (§5.4: British English, male first) ---------------- */
+let maleVoice=null, femaleVoice=null, englishVoice=null;
+function refreshVoices(){
+  const all = speechSynthesis.getVoices();
+  /* British English: the course teaches BrE ("maths", not "math"). Setting
+     utterance.lang alone is not enough — a voice object wins over it — so the
+     male/female pick is made from en-GB voices first, falling back to any
+     English voice, then to whatever the device has. */
+  const gb = all.filter(v => /^en[-_]GB/i.test(v.lang || ''));
+  const en = all.filter(v => /^en/i.test(v.lang || ''));
+  /* English voices only. Never fall back to `all`: on a Polish tablet that
+     hands English text to a Polish voice, which reads "do" as the Polish word. */
+  const voices = gb.length ? gb : en;
+  maleVoice = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name)) || null;
+  femaleVoice = voices.find(v => /female/i.test(v.name)) || null;
+  /* Most Android voices are named like "en-gb-x-rjs-local" — no "male" or
+     "female" anywhere — so the two above come out null and nothing would be
+     assigned, leaving the engine on the DEVICE DEFAULT, which is Polish here.
+     This is the voice used whenever the gendered pick finds nothing. */
+  englishVoice = voices[0] || null;
+}
+if('speechSynthesis' in window){ refreshVoices(); speechSynthesis.onvoiceschanged = refreshVoices; }
+let speakCount = 0;
+/* `onDone` fires when the reading has actually finished, so the exercise can
+   wait for it instead of guessing a delay. Called exactly once and always —
+   sound off, no speech support, and the Android builds where `onend` never
+   arrives (hence the safety timer), otherwise the exercise would hang. */
+/* A trailing ellipsis marks a sentence the student finishes; it is never
+   said aloud and never has to be typed. */
+const sayable = t => String(t).replace(/\s*\.{3}\s*$/, '');
+function speak(text, onDone){
+  let fired = false;
+  const done = ()=>{ if(!fired){ fired = true; if(onDone) onDone(); } };
+  if(!('speechSynthesis' in window) || !document.getElementById('soundChk').checked){
+    setTimeout(done, 300);
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(sayable(text));
+  u.lang='en-GB';
+  const odd = (++speakCount % 2 === 1);
+  /* Setting `voice` throws if the object is not a live SpeechSynthesisVoice —
+     which happens on Android when the voice list is rebuilt under us. Losing
+     the chosen voice is survivable; losing the reading is not, because the
+     exercise waits for it. */
+  try {
+    if(maleVoice && femaleVoice){ u.voice = odd ? maleVoice : femaleVoice; }
+    else if(maleVoice){ u.voice = maleVoice; }
+    else if(englishVoice){ u.voice = englishVoice; }
+  } catch(e){ /* stay on the device default */ }
+  if(!(maleVoice && femaleVoice)) u.pitch = odd ? 0.8 : 1.2;
+  u.onend = done;
+  u.onerror = done;
+  /* Safety net for the Android builds where `onend` never arrives. Scaled to
+     the text rather than a flat number: a freeze the length of a long sentence
+     is survivable, twelve seconds on every word is not. */
+  setTimeout(done, Math.min(8000, 1200 + text.length * 90));
+  try { speechSynthesis.speak(u); } catch(e){ done(); }
+}
+function shuffled(n){
+  const a = [...Array(n).keys()];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+const readBtn  = document.getElementById('readBtn');
+const helpBtn  = document.getElementById('helpBtn');
+const helpEl   = document.getElementById('help');
+const choicesEl= document.getElementById('choices');
+const revealEl = document.getElementById('reveal');
+const noteEl   = document.getElementById('note');
+const scoreEl  = document.getElementById('score');
+const doneEl   = document.getElementById('done');
+
+let order = [], step = 0, busy = false, heard = false;
+
+function start(){
+  order = shuffled(ITEMS.length);
+  step = 0; busy = false;
+  doneEl.hidden = true;
+  buildChoices();
+  nextRound();
+}
+
+/* A slashed run has nowhere legal to break, and word-break then snaps it
+   mid-word. A zero-width space after each slash fixes that. Written as the
+   escape, never as an invisible character in the source (§4.8); drawn text
+   only, never anything that reaches the voice. */
+const breakable = t => String(t).replace(/\//g, '/\u200b');
+
+/* The Polish options keep one fixed order for the whole run, so the student is
+   choosing by meaning and not by watching things move. */
+function buildChoices(){
+  choicesEl.innerHTML = '';
+  shuffled(ITEMS.length).forEach(i=>{
+    const c = document.createElement('div');
+    c.className = 'choice';
+    c.dataset.item = i;
+    c.textContent = breakable(ITEMS[i].pl);
+    c.addEventListener('click', ()=> pick(c));
+    choicesEl.appendChild(c);
+  });
+}
+
+function nextRound(){
+  if(step >= order.length){ finish(); return; }
+  busy = false; heard = false;
+  revealEl.hidden = true;
+  revealEl.textContent = '';
+  helpEl.hidden = true;
+  helpEl.textContent = '';
+  helpBtn.disabled = false;
+  readBtn.disabled = false;
+  readBtn.textContent = 'Czytaj';
+  noteEl.hidden = false;
+  scoreEl.textContent = 'Zrobione: ' + step + ' / ' + ITEMS.length;
+}
+
+readBtn.addEventListener('click', ()=>{
+  if(busy) return;
+  busy = true; heard = true;
+  readBtn.classList.add('speaking');
+  readBtn.textContent = 'Czytam…';
+  speak(ITEMS[order[step]].en, ()=>{
+    busy = false;
+    readBtn.classList.remove('speaking');
+    readBtn.textContent = 'Czytaj jeszcze raz';
+  });
+});
+
+/* Pomoc shows the English that was just read. It waits for the first Czytaj:
+   handing over the sentence before it has been heard would skip the listening
+   the exercise is for. */
+helpBtn.addEventListener('click', ()=>{
+  if(busy) return;
+  if(!heard){ noteEl.textContent = 'Najpierw naciśnij Czytaj.'; return; }
+  helpEl.textContent = breakable(ITEMS[order[step]].en);
+  helpEl.hidden = false;
+});
+
+function pick(cell){
+  if(busy) return;
+  if(cell.classList.contains('ok') || cell.classList.contains('locked')) return;
+  if(!heard){                      // nothing to match yet
+    noteEl.textContent = 'Najpierw naciśnij Czytaj.';
+    return;
+  }
+  const want = order[step];
+  if(+cell.dataset.item !== want){
+    /* Wrong tile: shake it, then read the phrase again. The student mis-heard
+       it, so another hearing is the help they need — and the board is held
+       while it reads, so a second tap cannot cut it short. */
+    cell.classList.remove('miss'); void cell.offsetWidth; cell.classList.add('miss');
+    setTimeout(()=> cell.classList.remove('miss'), 420);
+    busy = true;
+    readBtn.disabled = true;
+    readBtn.textContent = 'Czytam…';
+    helpBtn.disabled = true;
+    speak(ITEMS[want].en, ()=>{
+      busy = false;
+      readBtn.disabled = false;
+      readBtn.textContent = 'Czytaj jeszcze raz';
+      helpBtn.disabled = false;
+    });
+    return;
+  }
+  // right: show the English and read it again, then move on when it has finished
+  busy = true;
+  cell.classList.add('ok', 'locked');
+  step++;
+  scoreEl.textContent = 'Zrobione: ' + step + ' / ' + ITEMS.length;
+  readBtn.disabled = true;
+  readBtn.textContent = 'Czytam…';
+  helpBtn.disabled = true;
+  helpEl.hidden = true;
+  noteEl.hidden = true;
+  revealEl.hidden = false;
+  revealEl.textContent = ITEMS[want].en;
+  speak(ITEMS[want].en, ()=>{
+    readBtn.classList.remove('speaking');
+    setTimeout(nextRound, 350);
+  });
+}
+
+function finish(){
+  readBtn.disabled = true;
+  helpBtn.disabled = true;
+  helpEl.hidden = true;
+  readBtn.textContent = 'Czytaj';
+  revealEl.hidden = true;
+  noteEl.hidden = false;
+  noteEl.textContent = 'Wszystkie zdania odsłuchane i dopasowane.';
+  doneEl.hidden = false;
+  doneEl.textContent = 'Brawo!';
+  scoreEl.textContent = 'Zrobione: ' + ITEMS.length + ' / ' + ITEMS.length;
+}
+
+document.getElementById('againBtn').addEventListener('click', start);
+start();
+</script>
+</body>
+</html>
